@@ -67,7 +67,7 @@ trait CatalogueController extends FrontendController {
       service <- teamsAndServicesConnector.repositoryDetails(name)
       indicators <- indicatorsConnector.fprForService(name)
     } yield service match {
-      case Some(s) if s.data.repoType == RepoType.Deployable => Ok(service_info(s.time, s.data, indicators.map(_.map(_.toJSString))))
+      case Some(s) if s.data.repoType == RepoType.Deployable => Ok(service_info(s.time, s.data, indicators, indicators.map(_.map(_.toJSString))))
       case _ => NotFound
     }
   }

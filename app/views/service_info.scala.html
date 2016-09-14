@@ -17,8 +17,10 @@
 @import uk.gov.hmrc.cataloguefrontend.RepositoryDetails
 @import uk.gov.hmrc.cataloguefrontend.ViewMessages
 @import uk.gov.hmrc.cataloguefrontend.ViewMessages._
+@import play.twirl.api.Html
+@import uk.gov.hmrc.cataloguefrontend.FprDataPoint
 
-@(cacheTimestampFormatted: String, service: RepositoryDetails, chartSetupJS: Option[Seq[String]])
+@(cacheTimestampFormatted: String, service: RepositoryDetails, indicators: Option[Seq[FprDataPoint]], chartSetupJS: Option[Seq[Html]])
 
 @standard_layout(service.name,"services") {
 <header>
@@ -83,23 +85,40 @@
 
 <script type="text/javascript">
 
+    @toolTip(dataPoint: FprDataPoint) = @{
+
+        Html(<p>ashu <a href="http://localhost:9000/releases"> see data </a></p>.mkString.replaceAll("\"", "'"))
+
+
+    }
+
     @if(chartSetupJS.isDefined && chartSetupJS.get.nonEmpty) {
         google.charts.load('current', {packages: ['corechart', 'line']});
         google.charts.setOnLoadCallback(function () {
+
+
 
             var options = {
                 height: 350,
                 hAxis: {title: 'Period'},
                 vAxis: {title: 'Days'},
                 lineWidth: 4,
-                pointSize: 7
+                pointSize: 7,
+                tooltip: { isHtml: true, trigger: 'selection' }
             };
 
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Period');
             data.addColumn('number', 'Lead time');
+            data.addColumn({'type': 'string', 'role': 'tooltip', 'p': {'html': true}});
             data.addColumn('number', 'Interval');
-            data.addRows([@{Html( chartSetupJS.get.mkString(","))}]);
+            data.addColumn({'type': 'string', 'role': 'tooltip', 'p': {'html': true}});
+
+            //data.addRows([@{Html( chartSetupJS.get.mkString(","))}]);
+
+            @indicators.get.map{i =>
+                data.addRow(["@{i.period}",@{i.leadTimeString},"@toolTip(i)",@{i.intervalString},"look at other graph"])
+            }
 
             var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
             chart.draw(data, options);
