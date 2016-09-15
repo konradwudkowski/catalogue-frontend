@@ -20,7 +20,8 @@
 @import play.twirl.api.Html
 @import uk.gov.hmrc.cataloguefrontend.FprDataPoint
 
-@(cacheTimestampFormatted: String, service: RepositoryDetails, indicators: Option[Seq[FprDataPoint]], chartSetupJS: Option[Seq[Html]])
+@import uk.gov.hmrc.cataloguefrontend.ChartData
+@(cacheTimestampFormatted: String, service: RepositoryDetails, chartData: Option[ChartData])
 
 @standard_layout(service.name,"services") {
 <header>
@@ -62,15 +63,15 @@
                 <h3 class="board__heading">Indicators</h3>
                 <div class="board__body">
                     <h4 class="indicator__title">Frequent Production Releases</h4>
-                    @if(chartSetupJS.isDefined && chartSetupJS.get.nonEmpty) {
+                    @if(chartData.isDefined && !chartData.get.isEmpty) {
                         @Html(ViewMessages.fprExplanationText)
                     }
                     <div id="chart_div">
-                    @if(chartSetupJS.isEmpty) {
+                    @if(chartData.isEmpty) {
                         <h2 class="chart-message text-center">The catalogue encountered an error</h2>
                         <p>@Html(ViewMessages.indicatorsServiceError)</p>
                     } else {
-                        @if(chartSetupJS.get.isEmpty) {
+                        @if(chartData.get.isEmpty) {
                             <h2 class="chart-message text-center">No data to show</h2>
                             <p>@Html(ViewMessages.noIndicatorsData)</p>
                         }
@@ -85,20 +86,10 @@
 
 <script type="text/javascript">
 
-    @releasesUrl(dataPoint: FprDataPoint) = @{ s"${uk.gov.hmrc.cataloguefrontend.routes.CatalogueController.releases().url}?serviceName=${service.name}&from=${dataPoint.formattedFromDate}&to=${dataPoint.formattedToDate}"}
 
-    @toolTip(dataPoint: FprDataPoint) = @{
-
-        Html((<p>ashu <a href={releasesUrl(dataPoint)} target="_blank"> see data </a></p>).mkString.replaceAll("\"", "'"))
-
-    }
-
-    @if(chartSetupJS.isDefined && chartSetupJS.get.nonEmpty) {
+    @if(chartData.isDefined && !chartData.get.isEmpty) {
         google.charts.load('current', {packages: ['corechart', 'line']});
         google.charts.setOnLoadCallback(function () {
-
-
-
             var options = {
                 height: 350,
                 hAxis: {title: 'Period'},
@@ -115,8 +106,8 @@
             data.addColumn('number', 'Interval');
             data.addColumn({'type': 'string', 'role': 'tooltip', 'p': {'html': true}});
 
-            @indicators.get.map{i =>
-                data.addRow(["@{i.period}",@{i.leadTimeString},"@toolTip(i)",@{i.intervalString},"@toolTip(i)"])
+            @chartData.get.rows.map{row =>
+                data.addRow(@row);
             }
 
             var chart = new google.visualization.LineChart(document.getElementById('chart_div'));

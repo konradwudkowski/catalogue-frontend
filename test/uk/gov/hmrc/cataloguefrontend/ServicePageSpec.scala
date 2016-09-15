@@ -78,9 +78,10 @@ class ServicePageSpec extends UnitSpec with BeforeAndAfter with OneServerPerTest
       response.body should include(s"""data.addColumn('string', 'Period');""")
       response.body should include(s"""data.addColumn('number', 'Lead time');""")
       response.body should include(s"""data.addColumn('number', 'Interval');""")
-      response.body should include("""data.addRow(["2015-11",6,"<p>ashu <a href='http://localhost:9000/releases'> see data </a></p>",1,"look at other graph"])""")
-      response.body should include("""data.addRow(["2015-12",6,"<p>ashu <a href='http://localhost:9000/releases'> see data </a></p>",5,"look at other graph"])""")
-      response.body should include("""data.addRow(["2016-01",6,"<p>ashu <a href='http://localhost:9000/releases'> see data </a></p>",6,"look at other graph"])""")
+
+      response.body should include(s"""data.addColumn({'type': 'string', 'role': 'tooltip', 'p': {'html': true}});""")
+      response.body should include(s"""data.addColumn('number', 'Interval');""")
+      response.body should include(s"""data.addColumn({'type': 'string', 'role': 'tooltip', 'p': {'html': true}});""")
 
       response.body should include(s"""chart.draw(data, options);""")
     }
