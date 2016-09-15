@@ -50,8 +50,8 @@ case class MedianDataPoint(median: Int)
 
 case class FprDataPoint(period: String, from: LocalDate, to: LocalDate, leadTime: Option[MedianDataPoint], interval: Option[MedianDataPoint]) {
 
-  val formatedFromDate = from.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
-  val formatedToDate = to.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+  val formattedFromDate = from.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+  val formattedToDate = to.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
 
   def toJSString = Html(s"""["$period", ${unwrapMedian(leadTime)}, "${toolTip("Lead Time", leadTime.map(_.median))}", ${unwrapMedian(interval)}, "${toolTip("Interval", leadTime.map(_.median))}"]""")
 

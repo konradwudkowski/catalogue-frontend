@@ -85,10 +85,11 @@
 
 <script type="text/javascript">
 
+    @releasesUrl(dataPoint: FprDataPoint) = @{ s"${uk.gov.hmrc.cataloguefrontend.routes.CatalogueController.releases().url}?serviceName=${service.name}&from=${dataPoint.formattedFromDate}&to=${dataPoint.formattedToDate}"}
+
     @toolTip(dataPoint: FprDataPoint) = @{
 
-        Html((<p>ashu <a href="http://localhost:9000/releases"> see data </a></p>).mkString.replaceAll("\"", "'"))
-
+        Html((<p>ashu <a href={releasesUrl(dataPoint)} target="_blank"> see data </a></p>).mkString.replaceAll("\"", "'"))
 
     }
 
@@ -114,10 +115,8 @@
             data.addColumn('number', 'Interval');
             data.addColumn({'type': 'string', 'role': 'tooltip', 'p': {'html': true}});
 
-            //data.addRows([@{Html( chartSetupJS.get.mkString(","))}]);
-
             @indicators.get.map{i =>
-                data.addRow(["@{i.period}",@{i.leadTimeString},"@toolTip(i)",@{i.intervalString},"look at other graph"])
+                data.addRow(["@{i.period}",@{i.leadTimeString},"@toolTip(i)",@{i.intervalString},"@toolTip(i)"])
             }
 
             var chart = new google.visualization.LineChart(document.getElementById('chart_div'));

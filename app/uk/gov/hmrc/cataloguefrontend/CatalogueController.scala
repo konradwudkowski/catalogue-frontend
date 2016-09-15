@@ -26,7 +26,7 @@ import play.api.{Configuration, Play}
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
 
-object CatalogueController extends CatalogueController {
+object  CatalogueController extends CatalogueController {
   override def teamsAndServicesConnector: TeamsAndServicesConnector = TeamsAndServicesConnector
 
   override def indicatorsConnector: IndicatorsConnector = IndicatorsConnector
