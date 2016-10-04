@@ -29,15 +29,26 @@ case class ChartData(rows: Seq[Html]) {
 
 object ChartData {
 
-  def apply(serviceName: String, dataPoints: Option[Seq[DeploymentThroughputDataPoint]]): Option[ChartData] = {
+
+
+  def deploymentThroughput(serviceName: String, dataPoints: Option[Seq[DeploymentThroughputDataPoint]]): Option[ChartData] = {
 
     dataPoints.map { points =>
-      ChartData(chartRows(serviceName, points))
+      ChartData(chartRowsThroughput(serviceName, points))
+    }
+  }
+
+  def deploymentStability(serviceName: String, dataPoints: Option[Seq[DeploymentStabilityDataPoint]]): Option[ChartData] = {
+
+    dataPoints.map { points =>
+      ChartData(chartRowsStability(serviceName, points))
     }
   }
 
 
-  private def chartRows(serviceName: String, points: Seq[DeploymentThroughputDataPoint]): Seq[Html] = {
+
+
+  private def chartRowsThroughput(serviceName: String, points: Seq[DeploymentThroughputDataPoint]): Seq[Html] = {
     for {
       dp <- points
 
@@ -49,6 +60,16 @@ object ChartData {
     }
   }
 
+  private def chartRowsStability(serviceName: String, points: Seq[DeploymentStabilityDataPoint]): Seq[Html] = {
+    for {
+      dp <- points
+
+    } yield {
+
+      Html(s"""["${dp.period}", ${unwrap(dp.hotfixRate)}, ${unwrapMedian(dp.hotfixLeadTime)}]""")
+    }
+  }
+
   private def getReleaseUrlAnchor(serviceName: String, dp: DeploymentThroughputDataPoint) = <a href={releasesUrl(serviceName, dateToString(dp.from), dateToString(dp.to))} >View releases</a>
 
   private def releasesUrl(serviceName: String, from: String, to: String) = s"${uk.gov.hmrc.cataloguefrontend.routes.CatalogueController.releases().url}?serviceName=${serviceName}&from=${from}&to=${to}"
@@ -57,6 +78,7 @@ object ChartData {
   private def dateToString(date: LocalDate) = date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
 
   private def unwrapMedian(container: Option[MedianDataPoint]) = container.map(l => s"""${l.median}""").getOrElse("null")
+  private def unwrap(container: Option[_]) = container.map(l => s"""$l""").getOrElse("null")
 
 
   private def toolTip(period: String, dataPointLabel: String, dataPoint: Option[MedianDataPoint], additionalContent: Option[NodeSeq]) = {
