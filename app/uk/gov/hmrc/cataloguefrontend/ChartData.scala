@@ -42,14 +42,14 @@ object ChartData {
       dp <- points
 
     } yield {
-      val leadTimeToolTip = toolTip(dp.period, "Lead Time", dp.leadTime, Some(getRealeaseUrlAnchor(serviceName, dp)))
-      val intervalToolTip = toolTip(dp.period, "Interval", dp.interval, Some(getRealeaseUrlAnchor(serviceName, dp)))
+      val leadTimeToolTip = toolTip(dp.period, "Lead Time", dp.leadTime, Some(getReleaseUrlAnchor(serviceName, dp)))
+      val intervalToolTip = toolTip(dp.period, "Interval", dp.interval, Some(getReleaseUrlAnchor(serviceName, dp)))
 
       Html(s"""["${dp.period}", ${unwrapMedian(dp.leadTime)}, "$leadTimeToolTip", ${unwrapMedian(dp.interval)}, "$intervalToolTip"]""")
     }
   }
 
-  private def getRealeaseUrlAnchor(serviceName: String, dp: DeploymentThroughputDataPoint) = <a href={releasesUrl(serviceName, dateToString(dp.from), dateToString(dp.to))} >View releases</a>
+  private def getReleaseUrlAnchor(serviceName: String, dp: DeploymentThroughputDataPoint) = <a href={releasesUrl(serviceName, dateToString(dp.from), dateToString(dp.to))} >View releases</a>
 
   private def releasesUrl(serviceName: String, from: String, to: String) = s"${uk.gov.hmrc.cataloguefrontend.routes.CatalogueController.releases().url}?serviceName=${serviceName}&from=${from}&to=${to}"
 

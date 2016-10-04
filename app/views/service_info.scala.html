@@ -77,6 +77,17 @@
                         }
                     }
                     </div>
+                    <div id="chart_div_2">
+                    @if(chartData.isEmpty) {
+                        <h2 class="chart-message text-center">The catalogue encountered an error</h2>
+                        <p>@Html(ViewMessages.indicatorsServiceError)</p>
+                    } else {
+                        @if(chartData.get.isEmpty) {
+                            <h2 class="chart-message text-center">No data to show</h2>
+                            <p>@Html(ViewMessages.noIndicatorsData)</p>
+                        }
+                    }
+                    </div>
                 </div>
             </div>
         </div>
@@ -92,10 +103,11 @@
         google.charts.setOnLoadCallback(function () {
             var options = {
                 height: 350,
-                hAxis: {title: 'Period'},
-                vAxis: {title: 'Days'},
-                lineWidth: 4,
-                pointSize: 7,
+                hAxis: {title: 'Period', textStyle : {fontSize : 10}},
+                vAxis: {title: 'Days', textStyle : {fontSize : 10}},
+                lineWidth: 3,
+                pointSize: 4,
+                legend: {textStyle : {fontSize : 10}},
                 tooltip: { isHtml: true, trigger: 'selection' }
             };
 
@@ -112,6 +124,7 @@
 
             var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
             chart.draw(data, options);
+
         });
     }
 
