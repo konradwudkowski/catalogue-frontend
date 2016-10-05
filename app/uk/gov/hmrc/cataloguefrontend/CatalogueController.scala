@@ -72,7 +72,8 @@ trait CatalogueController extends FrontendController {
         service_info(
         s.time, s.data,
         ChartData.deploymentThroughput(name, maybeDataPoints.map(_.throughput)),
-        ChartData.deploymentStability(name, maybeDataPoints.map(_.stability))))
+        ChartData.deploymentStability(name, maybeDataPoints.map(_.stability)), request.getQueryString("stability").nonEmpty)
+      )
       case _ => NotFound
     }
   }
