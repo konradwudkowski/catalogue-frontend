@@ -29,8 +29,6 @@ case class ChartData(rows: Seq[Html]) {
 
 object ChartData {
 
-
-
   def deploymentThroughput(serviceName: String, dataPoints: Option[Seq[DeploymentThroughputDataPoint]]): Option[ChartData] = {
 
     dataPoints.map { points =>
@@ -46,15 +44,14 @@ object ChartData {
   }
 
 
-
-
   private def chartRowsThroughput(serviceName: String, points: Seq[DeploymentThroughputDataPoint]): Seq[Html] = {
     for {
       dp <- points
 
     } yield {
-      val leadTimeToolTip = toolTip(dp.period, "Lead Time", dp.leadTime, Some(getReleaseUrlAnchor(serviceName, dp)))
-      val intervalToolTip = toolTip(dp.period, "Interval", dp.interval, Some(getReleaseUrlAnchor(serviceName, dp)))
+      val relasePageAnchor: Elem = getReleaseUrlAnchor(serviceName, dp.from, dp.to)
+      val leadTimeToolTip = toolTip(dp.period, "Lead Time", dp.leadTime.map(_.median.toString), Some(relasePageAnchor))
+      val intervalToolTip = toolTip(dp.period, "Interval", dp.interval.map(_.median.toString), Some(relasePageAnchor))
 
       Html(s"""["${dp.period}", ${unwrapMedian(dp.leadTime)}, "$leadTimeToolTip", ${unwrapMedian(dp.interval)}, "$intervalToolTip"]""")
     }
@@ -65,12 +62,16 @@ object ChartData {
       dp <- points
 
     } yield {
-
-      Html(s"""["${dp.period}", ${unwrap(dp.hotfixRate)}, ${unwrapMedian(dp.hotfixLeadTime)}]""")
+      val hotfixRateToolTip = toolTip(dp.period, "Hotfix Rate", dp.hotfixRate.map(r => s"${toPercent(r)}%"), Some(getReleaseUrlAnchor(serviceName, dp.from, dp.to)))
+      Html(s"""["${dp.period}", ${unwrap(dp.hotfixRate)}, "$hotfixRateToolTip"]""")
     }
   }
 
-  private def getReleaseUrlAnchor(serviceName: String, dp: DeploymentThroughputDataPoint) = <a href={releasesUrl(serviceName, dateToString(dp.from), dateToString(dp.to))} >View releases</a>
+  def toPercent(r: Double): Int = {
+    (r * 100).toInt
+  }
+
+  private def getReleaseUrlAnchor(serviceName: String, from: LocalDate, to: LocalDate) = <a href={releasesUrl(serviceName, dateToString(from), dateToString(to))}>View releases</a>
 
   private def releasesUrl(serviceName: String, from: String, to: String) = s"${uk.gov.hmrc.cataloguefrontend.routes.CatalogueController.releases().url}?serviceName=${serviceName}&from=${from}&to=${to}"
 
@@ -78,23 +79,25 @@ object ChartData {
   private def dateToString(date: LocalDate) = date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
 
   private def unwrapMedian(container: Option[MedianDataPoint]) = container.map(l => s"""${l.median}""").getOrElse("null")
+
   private def unwrap(container: Option[_]) = container.map(l => s"""$l""").getOrElse("null")
 
 
-  private def toolTip(period: String, dataPointLabel: String, dataPoint: Option[MedianDataPoint], additionalContent: Option[NodeSeq]) = {
+  private def toolTip(period: String, dataPointLabel: String, dataPointValue: Option[String], additionalContent: Option[NodeSeq]) = {
 
     val element: Elem =
       <div>
         <table>
           <tr>
             <td nowrap="true">
-              <label>Period:</label> {period}
+              <label>Period:</label>{period}
             </td>
 
           </tr>
           <tr>
             <td nowrap="true">
-              <label>{dataPointLabel}:</label> {dataPoint.fold("")(_.median.toString)}
+              <label>
+                {dataPointLabel}: </label> {dataPointValue.fold("")(identity)}
             </td>
 
           </tr>

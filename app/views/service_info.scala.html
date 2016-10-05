@@ -77,9 +77,7 @@
                         }
                     }
                     </div>
-                    <div id="chart_div_2">
-
-                    </div>
+                    <div id="chart_div_2"></div>
                 </div>
             </div>
         </div>
@@ -122,65 +120,7 @@
     }
 
     @if(stabilityChartData.isDefined && !stabilityChartData.get.isEmpty) {
-        google.charts.load('current', {packages: ['corechart', 'line']});
-        google.charts.setOnLoadCallback(function () {
-
-            var classicOptions = {
-            title: 'Deployment Stability indicator',
-            height: 350,
-            // Gives each series an axis that matches the vAxes number below.
-            series: {
-              0: {targetAxisIndex: 0},
-              1: {targetAxisIndex: 1}
-            },
-            vAxes: {
-              // Adds titles to each axis.
-              0: {title: 'Hotfix Deployments', format:"#%", viewWindow:{
-                                  max:1,
-                                  min:0
-                                  }},
-              1: {title: 'Days'}
-            },
-            lineWidth: 3,
-            pointSize : 4,
-            legend: {textStyle : {fontSize : 10}},
-            hAxis: {title: 'Period', textStyle : {fontSize : 10}},
-            vAxis: { textStyle : {fontSize : 10}},
-            colors: ["orange", "green"]
-          };
-
-
-            var data = new google.visualization.DataTable();
-             data.addColumn('string', 'Period');
-             data.addColumn('number', "Hotfix rate");
-             data.addColumn('number', "Hotfix lead time");
-              @stabilityChartData.get.rows.map{row =>
-                    data.addRow(@row);
-                }
-    //         data.addRows([
-    //                ["2014-0", 0.7,  -.5],
-    //                ["2014-1", 0.7,   .4],
-    //                ["2014-2",0.12,   .5],
-    //                ["2014-3", 0.3,  2.9],
-    //                ["2014-4", 0.6,  6.3],
-    //                ["2014-5", 0.2,    90],
-    //                ["2014-6", 0.8, 10.6],
-    //                ["2014-7", 0.6, 10.3],
-    //                ["2014-8", 0.3,  7.4],
-    //                ["2014-9", 0.9,  4.4],
-    //                ["2014-1", 0.6, 1.1 ],
-    //                ["2014-1", 0.5, -.2 ]
-    //              ]);
-
-
-            var chart = new google.visualization.LineChart(document.getElementById('chart_div_2'));
-            chart.draw(data, classicOptions);
-
-            });
+        @views.html.stabilityScript(stabilityChartData)
        }
-
-
-
-
 
 </script>
