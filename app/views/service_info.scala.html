@@ -64,10 +64,13 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="board row">
-                    <h3 class="board__heading">Indicators</h3>
+                    <h3 class="board__heading">Delivery Indicators</h3>
                     <div class="board__body">
                         @if(throughputChartData.isDefined && !throughputChartData.get.isEmpty) {
 
+                            <p>These indicators show the frequency and stability of your production deployments</p>
+                            <p>Each monthly measurement is a 3 month rolling median. Trending towards lower numbers suggests an improvement; an absence of numbers suggests inactivity</p>
+                            <p><label>N.B.</label> You can click on a data point on a graph to see the underlying deployment data</p>
                             @renderGraphText
                             @renderThroughputGraph
                             @if(displayStabilityGraph) {
