@@ -66,10 +66,15 @@ trait WireMockEndpoints extends Suite with BeforeAndAfterAll with BeforeAndAfter
                        method:RequestMethod,
                        url:String,
                        extraHeaders:Map[String,String] = Map(),
-                       willRespondWith: (Int, Option[String])): Unit = {
+                       willRespondWith: (Int, Option[String]),
+                       givenJsonBody: Option[String] = None): Unit = {
 
     val builder = new MappingBuilder(method, urlEqualTo(url))
     //.withHeader("Content-Type", equalTo("application/json"))
+
+    givenJsonBody.map { b =>
+      builder.withRequestBody(equalToJson(b))
+    }.getOrElse(builder)
 
     val response: ResponseDefinitionBuilder = new ResponseDefinitionBuilder()
       .withStatus(willRespondWith._1)

@@ -26,12 +26,12 @@ import play.api.{Configuration, Play}
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
 
-object  CatalogueController extends CatalogueController {
+object CatalogueController extends CatalogueController {
   override def teamsAndServicesConnector: TeamsAndServicesConnector = TeamsAndServicesConnector
 
   override def indicatorsConnector: IndicatorsConnector = IndicatorsConnector
 
-  override def serviceReleases: ServiceReleasesConnector = ServiceReleasesConnector
+  override def releasesService: ReleasesService = new ReleasesService(ServiceReleasesConnector, TeamsAndServicesConnector)
 }
 
 trait CatalogueController extends FrontendController {
@@ -40,8 +40,7 @@ trait CatalogueController extends FrontendController {
 
   def indicatorsConnector: IndicatorsConnector
 
-  def serviceReleases: ServiceReleasesConnector
-
+  def releasesService: ReleasesService
 
   def landingPage() = Action { request =>
     Ok(landing_page())
@@ -98,7 +97,7 @@ trait CatalogueController extends FrontendController {
 
     import ReleaseFiltering._
 
-    serviceReleases.getReleases().map { rs =>
+    releasesService.getReleases().map { rs =>
 
       val form: Form[ReleasesFilter] = ReleasesFilter.form.bindFromRequest()
       form.fold(

@@ -16,7 +16,7 @@
 
 @import uk.gov.hmrc.cataloguefrontend.RepositoryDetails
 @import uk.gov.hmrc.cataloguefrontend.ViewMessages
-@(cacheTimestampFormatted: String, teamName:String, repos: Map[String, List[String]], teamMembersLink: String)
+@(cacheTimestampFormatted: String, teamName:String, repos: Map[String, Seq[String]], teamMembersLink: String)
 
 @standard_layout(teamName,"teams") {
 <header>
@@ -49,9 +49,9 @@
                         <p>@Html(ViewMessages.noRepoOfType("service"))</p>
                         } else {
                         <ul class="list list--minimal">
-                            @for(service <- services) {
+                        @for(service <- services) {
                             <li class="list-item" id="@{service}"><a href="/services/@{service}">@service</a></li>
-                            }
+                        }
                         </ul>
                         }
                 </div>
