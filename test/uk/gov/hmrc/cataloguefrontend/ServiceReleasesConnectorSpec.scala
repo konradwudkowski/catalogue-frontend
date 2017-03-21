@@ -95,35 +95,6 @@ class ServiceDeploymentsConnectorSpec extends UnitSpec with BeforeAndAfter with 
       response(1) shouldBe Release("serviceA", productionDate = toLocalDateTime(1453713911), creationDate = None, interval = Some(5), leadTime = None, version = "2.38.0")
     }
 
-    "return deployments for all services mentioned in the body" in {
-      val serviceNames = Seq("serviceNameA", "serviceNameB")
-
-      serviceEndpoint(POST, s"/api/deployments", willRespondWith = (200, Some(
-        """
-          |[
-          |	{
-          |		"name": "serviceNameA",
-          |		"version": "8.96.0",
-          |		"creationDate": 1452701233,
-          |		"productionDate": 1453731429,
-          |		"interval": 7,
-          |		"leadTime": 12
-          |	},
-          |	{
-          |		"name": "serviceNameB",
-          |		"version": "2.38.0",
-          |		"productionDate": 1453713911,
-          |		"interval": 5
-          |	}]
-        """.stripMargin
-      )), givenJsonBody = Some("[\"serviceNameA\",\"serviceNameB\"]"))
-
-      val response = await(ServiceDeploymentsConnector.getDeployments(serviceNames)(HeaderCarrier.fromHeadersAndSession(FakeHeaders())))
-
-      response.size shouldBe 2
-      response(0).name shouldBe "serviceNameA"
-      response(1).name shouldBe "serviceNameB"
-    }
 
     def toLocalDateTime(millis: Long): LocalDateTime = LocalDateTime.ofEpochSecond(millis, 0, ZoneOffset.UTC)
 

@@ -77,66 +77,6 @@ class DeploymentsServiceSpec extends WordSpec with Matchers with MockitoSugar wi
       deployments should contain(TeamRelease("a-service", teams = Seq(), productionDate = productionDate, version = "0.1.0"))
     }
 
-    "Filter results given a team name" in {
-      val deploymentsConnector = mock[ServiceDeploymentsConnector]
-      val teamsAndServicesConnector = mock[TeamsAndRepositoriesConnector]
-
-      val productionDate = LocalDateTime.ofEpochSecond(1453731429, 0, ZoneOffset.UTC)
-      when(deploymentsConnector.getDeployments(Seq("a-service", "b-service"))).thenReturn(Future.successful(Seq(
-        Release("a-service", productionDate = productionDate, version = "0.1.0"),
-        Release("b-service", productionDate = productionDate, version = "0.2.0"))))
-
-      when(teamsAndServicesConnector.teamInfo("b-team")).thenReturn(Future.successful(
-        Some(new Timestamped[Team](
-          Team(name = "teamName", None, None, None,
-          repos = Some(Map("Service" -> Seq("a-service", "b-service")))), Some(Instant.now)))))
-
-      when(teamsAndServicesConnector.teamsByService(Seq("a-service", "b-service"))).thenReturn(
-        Future.successful(new Timestamped[Map[ServiceName, Seq[TeamName]]](
-          Map("a-service" -> Seq("a-team", "b-team"), "b-service" -> Seq("b-team", "c-team")), Some(Instant.now))))
-
-      val service = new DeploymentsService(deploymentsConnector, teamsAndServicesConnector)
-      val deployments = service.getDeployments(teamName = Some("b-team")).futureValue
-
-      deployments should contain(TeamRelease("a-service", teams = Seq("a-team", "b-team"), productionDate = productionDate, version = "0.1.0"))
-      deployments should contain(TeamRelease("b-service", teams = Seq("b-team", "c-team"), productionDate = productionDate, version = "0.2.0"))
-    }
-
-    "Filter results given a service name" in {
-      val deploymentsConnector = mock[ServiceDeploymentsConnector]
-      val teamsAndServicesConnector = mock[TeamsAndRepositoriesConnector]
-
-      val productionDate = LocalDateTime.ofEpochSecond(1453731429, 0, ZoneOffset.UTC)
-      when(deploymentsConnector.getDeployments(Seq("a-service"))).thenReturn(Future.successful(Seq(
-        Release("a-service", productionDate = productionDate, version = "0.1.0"))))
-
-      when(teamsAndServicesConnector.repositoryDetails("a-service")).thenReturn(
-        Future.successful(Some(new Timestamped[RepositoryDetails](
-          RepositoryDetails("a-service", "some description", now, now, Seq("a-team", "b-team"), Seq(), Seq(), None, RepoType.Service), Some(Instant.now)))))
-
-      val service = new DeploymentsService(deploymentsConnector, teamsAndServicesConnector)
-      val deployments = service.getDeployments(serviceName = Some("a-service")).futureValue
-
-      deployments should contain(TeamRelease("a-service", teams = Seq("a-team", "b-team"), productionDate = productionDate, version = "0.1.0"))
-    }
-
-    "Give precedence to the service name filter over the team name filter as it is more specific" in {
-      val deploymentsConnector = mock[ServiceDeploymentsConnector]
-      val teamsAndServicesConnector = mock[TeamsAndRepositoriesConnector]
-
-      val productionDate = LocalDateTime.ofEpochSecond(1453731429, 0, ZoneOffset.UTC)
-      when(deploymentsConnector.getDeployments(Seq("a-service"))).thenReturn(Future.successful(Seq(
-        Release("a-service", productionDate = productionDate, version = "0.1.0"))))
-
-      when(teamsAndServicesConnector.repositoryDetails("a-service")).thenReturn(
-        Future.successful(Some(new Timestamped[RepositoryDetails](
-          RepositoryDetails("a-service", "some description", now, now, Seq("a-team", "b-team"), Seq(), Seq(), None, RepoType.Service), Some(Instant.now)))))
-
-      val service = new DeploymentsService(deploymentsConnector, teamsAndServicesConnector)
-      val deployments = service.getDeployments(serviceName = Some("a-service"), teamName = Some("non-matching-team")).futureValue
-
-      deployments should contain(TeamRelease("a-service", teams = Seq("a-team", "b-team"), productionDate = productionDate, version = "0.1.0"))
-    }
 
 
     "Not make unnecessary calls if a team does not exist" in {

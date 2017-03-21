@@ -58,20 +58,6 @@ trait ServiceDeploymentsConnector extends ServicesConfig {
 
   implicit val deploymentsFormat = Json.reads[Release]
 
-  def getDeployments(serviceNames: Iterable[String])(implicit hc: HeaderCarrier) = {
-    val url =  s"$servicesDeploymentsBaseUrl"
-
-    http.POST[Seq[String],HttpResponse](url, serviceNames.toSeq).map { r =>
-      r.status match {
-        case 200 => r.json.as[Seq[Release]]
-        case 404 => Seq()
-      }
-    }.recover {
-      case ex =>
-        Logger.error(s"An error occurred when connecting to $servicesDeploymentsBaseUrl: ${ex.getMessage}", ex)
-        Seq.empty
-    }
-  }
 
   def getDeployments(serviceName: Option[String] = None)(implicit hc: HeaderCarrier): Future[Seq[Release]] = {
     val url = serviceName.fold(servicesDeploymentsBaseUrl)(name => s"$servicesDeploymentsBaseUrl/$name")

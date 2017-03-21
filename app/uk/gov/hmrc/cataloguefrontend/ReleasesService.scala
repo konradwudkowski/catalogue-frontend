@@ -43,8 +43,6 @@ class DeploymentsService(deploymentsConnector: ServiceDeploymentsConnector, team
       query <- buildFilter(teamName, serviceName)
       deployments <- query match {
         case All(st) => deploymentsConnector.getDeployments()
-        case ServiceTeams(st) =>
-          deploymentsConnector.getDeployments(st.keys.toSeq)
         case NotFound => Future.successful(Seq())
       }
     } yield deployments map teamRelease(query)
