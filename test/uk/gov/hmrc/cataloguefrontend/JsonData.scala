@@ -61,26 +61,26 @@ object JsonData {
        |		     }
        |	     ],
        |      "environments" : [{
-       |        "name" : "env1",
+       |        "name" : "QA",
        |        "services" : [{
-       |          "name": "ser1",
-       |		       "displayName": "service-1",
-       |          "url": "http://ser1/service-1"
+       |          "name": "jenkins",
+       |		       "displayName": "Jenkins",
+       |          "url": "https://deploy-qa.tax.service.gov.uk/job/deploy-microservice"
        |        }, {
-       |          "name": "ser2",
-       |		       "displayName": "service-2",
-       |          "url": "http://ser2/service-2"
+       |          "name": "grafana",
+       |		       "displayName": "Grafana",
+       |          "url": "https://grafana-datacentred-sal01-qa.tax.service.gov.uk/#/dashboard"
        |        }]
        |      },{
-       |        "name" : "env2",
+       |        "name" : "Production",
        |        "services" : [{
-       |          "name": "ser1",
-       |		       "displayName": "service-1",
-       |          "url": "http://ser1/service-1"
+       |          "name": "jenkins",
+       |		       "displayName": "Jenkins",
+       |          "url": "https://deploy-prod.tax.service.gov.uk/job/deploy-microservice"
        |        }, {
-       |          "name": "ser2",
-       |		       "displayName": "service-2",
-       |          "url": "http://ser2/service-2"
+       |          "name": "grafana",
+       |		       "displayName": "Grafana",
+       |          "url": "https://grafana-prod.tax.service.gov.uk/#/dashboard"
        |        }]
        |       }]
        |     }
