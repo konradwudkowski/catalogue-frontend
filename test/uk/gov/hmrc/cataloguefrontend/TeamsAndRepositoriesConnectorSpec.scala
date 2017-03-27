@@ -79,6 +79,12 @@ class TeamsAndRepositoriesConnectorSpec extends WordSpec with Matchers with Befo
       responseData.ci should ===(Seq(Link("open1", "open 1", "http://open1/service-1"), Link("open2", "open 2", "http://open2/service-2")))
       responseData.environments should ===(Some(Seq(
         Environment(
+          "Dev",
+          Seq(
+            Link("jenkins", "Jenkins", "https://deploy-dev.tax.service.gov.uk/job/deploy-microservice"),
+            Link("grafana", "Grafana", "https://grafana-dev.tax.service.gov.uk/#/dashboard")
+          )),
+                Environment(
           "QA",
           Seq(
             Link("jenkins", "Jenkins", "https://deploy-qa.tax.service.gov.uk/job/deploy-microservice"),
