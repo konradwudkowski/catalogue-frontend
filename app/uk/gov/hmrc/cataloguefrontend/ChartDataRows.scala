@@ -80,13 +80,14 @@ trait ChartData {
     for {
       dataPoint <- points
     } yield {
-      val tip = toolTip(dataPoint.period, None) _
-      val jobExecutionTimeTooltip = tip("Job Execution Time", Some(dataPoint.duration))
+      val formattedTime = dataPoint.duration.map(d => s"${(d.median millis).toMinutes} min")
 
-      val timeData = dataPoint.duration.map(d => {
-        val minutes = (d.median millis).toMinutes
-        s"$minutes"
-      }).getOrElse("null")
+      val tip = toolTip(dataPoint.period, None) _
+      val jobExecutionTimeTooltip: Html = tip("Job Execution Time", formattedTime)
+
+      val timeData = dataPoint.duration.map(d =>
+        s"${(d.median millis).toMinutes}"
+      ).getOrElse("null")
 
       Html(s"""["${dataPoint.period}", $timeData, "$jobExecutionTimeTooltip"]""")
     }
