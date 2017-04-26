@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter
 
 import play.twirl.api.Html
 
+import scala.concurrent.duration.Duration
 import scala.xml.{Elem, NodeSeq}
 
 case class ChartDataRows(rows: Seq[Html]) {
@@ -29,19 +30,20 @@ case class ChartDataRows(rows: Seq[Html]) {
 
 trait ChartData {
 
-  def deploymentThroughput(serviceName: String, dataPoints: Option[Seq[DeploymentThroughputDataPoint]]): Option[ChartDataRows] = {
-
+  def deploymentThroughput(serviceName: String, dataPoints: Option[Seq[DeploymentThroughputDataPoint]]): Option[ChartDataRows] =
     dataPoints.map { points =>
       ChartDataRows(chartRowsThroughput(serviceName, points))
     }
-  }
 
-  def deploymentStability(serviceName: String, dataPoints: Option[Seq[DeploymentStabilityDataPoint]]): Option[ChartDataRows] = {
-
+  def deploymentStability(serviceName: String, dataPoints: Option[Seq[DeploymentStabilityDataPoint]]): Option[ChartDataRows] =
     dataPoints.map { points =>
       ChartDataRows(chartRowsStability(serviceName, points))
     }
-  }
+
+  def jobExecutionTime(repositoryName: String, dataPoints: Option[Seq[JobExecutionTimeDataPoint]]): Option[ChartDataRows] =
+    dataPoints.map { points =>
+      ChartDataRows(chartRowsJobExecutionTime(repositoryName, points))
+    }
 
   protected def deploymentsSerachParameters(name: String, from: String, to: String) : Map[String,String]
 
@@ -72,6 +74,24 @@ trait ChartData {
     }
   }
 
+  private def chartRowsJobExecutionTime(repositoryName: String, points: Seq[JobExecutionTimeDataPoint]): Seq[Html] = {
+    import scala.concurrent.duration._
+
+    for {
+      dataPoint <- points
+    } yield {
+      val tip = toolTip(dataPoint.period, None) _
+      val jobExecutionTimeTooltip = tip("Job Execution Time", Some(dataPoint.duration))
+
+      val timeData = dataPoint.duration.map(d => {
+        val minutes = (d.median millis).toMinutes
+        s"$minutes"
+      }).getOrElse("null")
+
+      Html(s"""["${dataPoint.period}", $timeData, "$jobExecutionTimeTooltip"]""")
+    }
+  }
+
   private def toPercent(r: Double): Int = (r * 100).toInt
 
   private def getReleaseUrlAnchor(serviceName: String, from: LocalDate, to: LocalDate) = <a href={deploymentsUrl(serviceName, dateToString(from), dateToString(to))}>View deployments</a>
@@ -86,7 +106,6 @@ trait ChartData {
   private def unwrapMedian(container: Option[MedianDataPoint]) = container.map(l => s"""${l.median}""").getOrElse("null")
 
   private def unwrap(container: Option[_]) = container.map(l => s"""$l""").getOrElse("null")
-
 
   private def toolTip(period: String, additionalContent: Option[NodeSeq])(dataPointLabel: String, dataPointValue: Option[String]) = {
 
