@@ -32,6 +32,7 @@ package uk.gov.hmrc.cataloguefrontend
  * limitations under the License.
  */
 
+import cats.data.EitherT
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import uk.gov.hmrc.cataloguefrontend.FutureHelpers.withTimerAndCounter
@@ -53,6 +54,72 @@ trait UserManagementConnector extends UserManagementPortalLink {
 
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response
+  }
+
+
+
+  def getTeamMembers(teams: Seq[String])(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Map[String, Seq[TeamMember]]]] = {
+    val x = Left(3)
+
+//    x.
+
+    type EitherTMap[A] = EitherT[Future, ConnectorError, A]
+
+    val xs: Seq[EitherT[Future, ConnectorError, (String, Seq[TeamMember])]] = teams
+      .map(teamName => EitherT(getTeamMembers(teamName)).map(x => (teamName, x)))
+
+    val y: Seq[EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]]] =
+      xs.map(x => x.map(Seq(_).toMap))
+
+
+    PLATOPS-989
+//    y.foldRight(Map.empty[String, Seq[TeamMember]])((a,b) => b ++ a.collectRight.value.get.get)
+
+    import cats.syntax.applicative._
+
+    import cats.Monoid
+
+    val yy: EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]] =
+      y.fold(Seq.empty[(String, Seq[TeamMember])].pure[EitherTMap])(Monoid[EitherT[Future, ConnectorError, Seq[(String, Seq[TeamMember])]]].combine)
+        .map(_.toMap)
+
+    yy.value
+
+//    y.foldLeft(Map[String, Seq[TeamMember]].pure[EitherTMap])((acc, next: EitherT[Future, ConnectorError, Seq[TeamMember]]) => acc.combine())
+
+  }
+  def getTeamMembersNew(teams: Seq[String])(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Map[String, Seq[TeamMember]]]] = {
+
+
+    val xs: Future[Seq[(String, Either[ConnectorError, Seq[TeamMember]])]] = Future.sequence(teams
+      .map(teamName => getTeamMembers(teamName).map((x: Either[ConnectorError, Seq[TeamMember]]) => (teamName, x))))
+
+
+    val y: Future[Seq[Either[ConnectorError, Map[String, Seq[TeamMember]]]]] = xs.map{ s =>
+      s.map {
+        case (k, v) => v.right.map(s => (k,s)).right.map(Map(_))
+      }
+    }
+
+    val blah: Future[Either[Seq[ConnectorError], Seq[Map[String, Seq[TeamMember]]]]] = y.map { (s: Seq[Either[ConnectorError, Map[String, Seq[TeamMember]]]]) =>
+      s.partition(_.isLeft) match {
+        case (Nil,  teamMaps) => Right(for(Right(i) <- teamMaps.view) yield i)
+        case (connectionErrors, _) => Left(for(Left(s) <- connectionErrors.view) yield s)
+      }
+    }
+
+    import cats.syntax.applicative._
+
+    import cats.Monoid
+
+//    val yy: EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]] =
+//      y.fold(Seq.empty[(String, Seq[TeamMember])].pure[EitherTMap])(Monoid[EitherT[Future, ConnectorError, Seq[(String, Seq[TeamMember])]]].combine)
+//        .map(_.toMap)
+//
+//    yy.value
+
+//    y.foldLeft(Map[String, Seq[TeamMember]].pure[EitherTMap])((acc, next: EitherT[Future, ConnectorError, Seq[TeamMember]]) => acc.combine())
+
   }
 
   def getTeamMembers(team: String)(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Seq[TeamMember]]] = {

@@ -19,6 +19,7 @@ package uk.gov.hmrc.cataloguefrontend
 
 import java.time.{LocalDateTime, ZoneOffset}
 
+import cats.data.{EitherT, OptionT}
 import play.api.Play.current
 import play.api.data.Forms._
 import play.api.data.{Form, Mapping}
@@ -99,24 +100,41 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
   }
 
   def digitalService(digitalServiceName: String) = Action.async { implicit request =>
-    val eventualDigitalServiceInfo: Future[Option[Timestamped[DigitalService]]] = teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
+//    val eventualDigitalServiceInfo: Future[Either[ConnectorError, Timestamped[DigitalService]]] = ???
 
-    def getRepos(data: DigitalService) = {
-      val emptyMapOfRepoTypes = RepoType.values.map(v => v.toString -> List.empty[String]).toMap
-      val mapOfRepoTypes = data.repositories.groupBy(_.repoType).map { case (k, v) => k.toString -> v.map(_.name) }
+val eventualDigitalServiceInfo: Future[Either[ConnectorError, Timestamped[DigitalService]]] =
+      teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
 
-      emptyMapOfRepoTypes ++ mapOfRepoTypes
-    }
 
-    eventualDigitalServiceInfo.map { maybeTimestamped =>
-      maybeTimestamped.map( timestamptedDigitalService =>
-        Ok(digital_service_info(
-          timestamptedDigitalService.formattedTimestamp,
-          timestamptedDigitalService.data.name,
-          repos = getRepos(timestamptedDigitalService.data)
-        ))).getOrElse(NotFound)
-    }
+    import cats.instances.future._
+
+    val eitherTTeamMembers: EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]] = for {
+      dsi <- EitherT(eventualDigitalServiceInfo)
+      x <- EitherT(userManagementConnector.getTeamMembers(dsi.data.repositories.flatMap(_.teamNames)))
+    } yield x
+
+    type EitherTMap[A] = EitherT[Future, ConnectorError, A]
+
+    val y: EitherT[Future, ConnectorError, Result] = for {
+      dsi <- EitherT(eventualDigitalServiceInfo)
+      teamMembersLookUp <- eitherTTeamMembers
+    } yield Ok(digital_service_info(
+      dsi.formattedTimestamp,
+      dsi.data.name,
+      teamMembersLookUp,
+      repos = getRepos(dsi.data)
+    ))
+
+    y.getOrElse(NotFound)
   }
+
+  def getRepos(data: DigitalService) = {
+    val emptyMapOfRepoTypes = RepoType.values.map(v => v.toString -> List.empty[String]).toMap
+    val mapOfRepoTypes = data.repositories.groupBy(_.repoType).map { case (k, v) => k.toString -> v.map(_.name) }
+
+    emptyMapOfRepoTypes ++ mapOfRepoTypes
+  }
+
 
   def allDigitalServices = Action.async { implicit request =>
     import SearchFiltering._
