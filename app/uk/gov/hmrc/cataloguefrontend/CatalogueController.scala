@@ -168,7 +168,7 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     def getDigitalServiceOwner = TeamMember(Some("Armin Keyvanloo"), None, None, None, None, None)
 
     digitalServiceDetails.value.map(d => {
-      Ok(digital_service_info_tom(digitalServiceName, d, Some(getDigitalServiceOwner)))
+      Ok(digital_service_info(digitalServiceName, d, Some(getDigitalServiceOwner)))
     })
   }
 

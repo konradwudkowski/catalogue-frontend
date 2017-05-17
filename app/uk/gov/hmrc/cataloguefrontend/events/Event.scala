@@ -21,14 +21,12 @@ import play.api.libs.json._
 
 sealed trait EventData
 case class ServiceOwnerUpdatedEventData(service: String, name: String) extends EventData
-case class SomeOtherEventData(something: String, somethingElse: Long) extends EventData // <--- this is an example event type showing how to add other event types
+case class SomeOtherEventData(something: String, somethingElse: Long) extends EventData // <--- this is an example event type showing how to add other EventData types
 
 
 object EventData extends EventData {
   implicit val  serviceOwnerUpdatedEventDataFormat = Json.format[ServiceOwnerUpdatedEventData]
   implicit val  someOtherEventDataFormat = Json.format[SomeOtherEventData]
-
-  val serviceOwnerUpdatedEventDataType :String = ServiceOwnerUpdatedEventData.getClass.getTypeName
 
   def unapply(eventData: EventData): Option[(String, JsValue)] = {
     val (prod: Product, sub) = eventData match {
@@ -40,8 +38,8 @@ object EventData extends EventData {
 
   def apply(`type`: String, data: JsValue): EventData = {
     (`type` match {
-      case "ServiceOwnerUpdatedEventData" => Json.fromJson[ServiceOwnerUpdatedEventData](data)(EventData.serviceOwnerUpdatedEventDataFormat)
-      case "SomeOtherEventData" => Json.fromJson[SomeOtherEventData](data)(EventData.someOtherEventDataFormat)
+      case "ServiceOwnerUpdatedEventData" => Json.fromJson[ServiceOwnerUpdatedEventData](data)(serviceOwnerUpdatedEventDataFormat)
+      case "SomeOtherEventData" => Json.fromJson[SomeOtherEventData](data)(someOtherEventDataFormat)
     }).get
   }
 
