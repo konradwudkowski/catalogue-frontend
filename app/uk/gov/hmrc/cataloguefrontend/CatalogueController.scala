@@ -17,7 +17,8 @@
 package uk.gov.hmrc.cataloguefrontend
 
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.io
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 import cats.data.{EitherT, OptionT}
 import play.api.Play.current
@@ -28,13 +29,19 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import play.twirl.api.Html
 import uk.gov.hmrc.cataloguefrontend.DisplayableTeamMembers.DisplayableTeamMember
-import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectorError, TeamMember}
+import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
+import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, TeamMember, UMPError}
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
 
 import scala.concurrent.Future
 
 case class TeamActivityDates(firstActive: Option[LocalDateTime], lastActive: Option[LocalDateTime], firstServiceCreationDate: Option[LocalDateTime])
+
+case class DigitalServiceDetails(digitalServiceName: String,
+                                 teamMembersLookUp: Map[String, Either[UMPError, Seq[DisplayableTeamMember]]],
+                                 repos: Map[String, Seq[String]])
+
 
 
 object CatalogueController extends CatalogueController {
@@ -100,32 +107,34 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
   }
 
   def digitalService(digitalServiceName: String) = Action.async { implicit request =>
-//    val eventualDigitalServiceInfo: Future[Either[ConnectorError, Timestamped[DigitalService]]] = ???
-
-val eventualDigitalServiceInfo: Future[Either[ConnectorError, Timestamped[DigitalService]]] =
-      teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
-
-
     import cats.instances.future._
 
-    val eitherTTeamMembers: EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]] = for {
-      dsi <- EitherT(eventualDigitalServiceInfo)
-      x <- EitherT(userManagementConnector.getTeamMembers(dsi.data.repositories.flatMap(_.teamNames)))
-    } yield x
+    type TeamsAndRepoType[A] = Future[Either[TeamsAndRepositoriesError, A]]
 
-    type EitherTMap[A] = EitherT[Future, ConnectorError, A]
+    val eventualDigitalServiceInfoF: TeamsAndRepoType[Timestamped[DigitalService]] =
+    teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
 
-    val y: EitherT[Future, ConnectorError, Result] = for {
-      dsi <- EitherT(eventualDigitalServiceInfo)
-      teamMembersLookUp <- eitherTTeamMembers
-    } yield Ok(digital_service_info(
-      dsi.formattedTimestamp,
-      dsi.data.name,
-      teamMembersLookUp,
-      repos = getRepos(dsi.data)
-    ))
 
-    y.getOrElse(NotFound)
+    val errorOrTeamNames: TeamsAndRepoType[Seq[String]] =
+    eventualDigitalServiceInfoF.map(_.right.map(_.data.repositories.flatMap(_.teamNames)).right.map(_.distinct))
+
+    val errorOrTeamMembersLookupF: Future[Either[TeamsAndRepositoriesError, Map[String, Either[UMPError, Seq[DisplayableTeamMember]]]]] = errorOrTeamNames.flatMap {
+      case Right(teamNames) =>
+        userManagementConnector
+          .getTeamMembersForTeams(teamNames)
+          .map(convertToDisplayableTeamMembers)
+          .map(Right(_))
+      case Left(connectorError) =>
+        Future.successful(Left(connectorError))
+    }
+
+
+    val digitalServiceDetails: EitherT[Future, TeamsAndRepositoriesError, Timestamped[DigitalServiceDetails]] = for {
+      timestampedDigitalService <- EitherT(eventualDigitalServiceInfoF)
+      teamMembers <- EitherT(errorOrTeamMembersLookupF)
+    } yield timestampedDigitalService.map(digitalService => DigitalServiceDetails(digitalServiceName, teamMembers, getRepos(digitalService)))
+
+    digitalServiceDetails.value.map(d => Ok(digital_service_info(digitalServiceName, d)))
   }
 
   def getRepos(data: DigitalService) = {
@@ -168,7 +177,7 @@ val eventualDigitalServiceInfo: Future[Either[ConnectorError, Timestamped[Digita
   def team(teamName: String) = Action.async { implicit request =>
 
     val eventualTeamInfo = teamsAndRepositoriesConnector.teamInfo(teamName)
-    val eventualErrorOrMembers = userManagementConnector.getTeamMembers(teamName)
+    val eventualErrorOrMembers = userManagementConnector.getTeamMembersFromUMP(teamName)
     val eventualErrorOrTeamDetails = userManagementConnector.getTeamDetails(teamName)
 
     val eventualMaybeDeploymentIndicators = indicatorsConnector.deploymentIndicatorsForTeam(teamName)
@@ -353,13 +362,16 @@ val eventualDigitalServiceInfo: Future[Either[ConnectorError, Timestamped[Digita
 
   }
 
-  private def convertToDisplayableTeamMembers(teamName: String, errorOrTeamMembers: Either[ConnectorError, Seq[TeamMember]]): Either[ConnectorError, Seq[DisplayableTeamMember]] =
-
+  private def convertToDisplayableTeamMembers(teamName: String, errorOrTeamMembers: Either[UMPError, Seq[TeamMember]]): Either[UMPError, Seq[DisplayableTeamMember]] =
     errorOrTeamMembers match {
       case Left(err) => Left(err)
       case Right(tms) =>
         Right(DisplayableTeamMembers(teamName, getConfString(profileBaseUrlConfigKey, "#"), tms))
     }
+
+
+  private def convertToDisplayableTeamMembers(teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]]): Map[String, Either[UMPError, Seq[DisplayableTeamMember]]] =
+    teamsAndMembers.map { case (teamName, errorOrMembers) => (teamName, convertToDisplayableTeamMembers(teamName, errorOrMembers)) }
 
 
 }

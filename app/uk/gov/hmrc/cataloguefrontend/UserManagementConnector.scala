@@ -32,6 +32,7 @@ package uk.gov.hmrc.cataloguefrontend
  * limitations under the License.
  */
 
+import cats.Applicative
 import cats.data.EitherT
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
@@ -42,6 +43,7 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext.fromLoggingDetails
 
 import scala.concurrent.Future
+import cats.instances.future._
 
 
 trait UserManagementConnector extends UserManagementPortalLink {
@@ -57,78 +59,21 @@ trait UserManagementConnector extends UserManagementPortalLink {
   }
 
 
+  def getTeamMembersForTeams(teamNames: Seq[String])(implicit hc: HeaderCarrier): Future[Map[String, Either[UMPError, Seq[TeamMember]]]] = {
 
-  def getTeamMembers(teams: Seq[String])(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Map[String, Seq[TeamMember]]]] = {
-    val x = Left(3)
+    def getTeamMembers(teamName: String) = getTeamMembersFromUMP(teamName).map(umpErrorOrTeamMembers => (teamName, umpErrorOrTeamMembers))
 
-//    x.
-
-    type EitherTMap[A] = EitherT[Future, ConnectorError, A]
-
-    val xs: Seq[EitherT[Future, ConnectorError, (String, Seq[TeamMember])]] = teams
-      .map(teamName => EitherT(getTeamMembers(teamName)).map(x => (teamName, x)))
-
-    val y: Seq[EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]]] =
-      xs.map(x => x.map(Seq(_).toMap))
-
-
-    PLATOPS-989
-//    y.foldRight(Map.empty[String, Seq[TeamMember]])((a,b) => b ++ a.collectRight.value.get.get)
-
-    import cats.syntax.applicative._
-
-    import cats.Monoid
-
-    val yy: EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]] =
-      y.fold(Seq.empty[(String, Seq[TeamMember])].pure[EitherTMap])(Monoid[EitherT[Future, ConnectorError, Seq[(String, Seq[TeamMember])]]].combine)
-        .map(_.toMap)
-
-    yy.value
-
-//    y.foldLeft(Map[String, Seq[TeamMember]].pure[EitherTMap])((acc, next: EitherT[Future, ConnectorError, Seq[TeamMember]]) => acc.combine())
-
-  }
-  def getTeamMembersNew(teams: Seq[String])(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Map[String, Seq[TeamMember]]]] = {
-
-
-    val xs: Future[Seq[(String, Either[ConnectorError, Seq[TeamMember]])]] = Future.sequence(teams
-      .map(teamName => getTeamMembers(teamName).map((x: Either[ConnectorError, Seq[TeamMember]]) => (teamName, x))))
-
-
-    val y: Future[Seq[Either[ConnectorError, Map[String, Seq[TeamMember]]]]] = xs.map{ s =>
-      s.map {
-        case (k, v) => v.right.map(s => (k,s)).right.map(Map(_))
-      }
-    }
-
-    val blah: Future[Either[Seq[ConnectorError], Seq[Map[String, Seq[TeamMember]]]]] = y.map { (s: Seq[Either[ConnectorError, Map[String, Seq[TeamMember]]]]) =>
-      s.partition(_.isLeft) match {
-        case (Nil,  teamMaps) => Right(for(Right(i) <- teamMaps.view) yield i)
-        case (connectionErrors, _) => Left(for(Left(s) <- connectionErrors.view) yield s)
-      }
-    }
-
-    import cats.syntax.applicative._
-
-    import cats.Monoid
-
-//    val yy: EitherT[Future, ConnectorError, Map[String, Seq[TeamMember]]] =
-//      y.fold(Seq.empty[(String, Seq[TeamMember])].pure[EitherTMap])(Monoid[EitherT[Future, ConnectorError, Seq[(String, Seq[TeamMember])]]].combine)
-//        .map(_.toMap)
-//
-//    yy.value
-
-//    y.foldLeft(Map[String, Seq[TeamMember]].pure[EitherTMap])((acc, next: EitherT[Future, ConnectorError, Seq[TeamMember]]) => acc.combine())
-
+    Future.sequence(teamNames.map(getTeamMembers)).map(_.toMap)
   }
 
-  def getTeamMembers(team: String)(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Seq[TeamMember]]] = {
+
+  def getTeamMembersFromUMP(team: String)(implicit hc: HeaderCarrier): Future[Either[UMPError, Seq[TeamMember]]] = {
     val newHeaderCarrier = hc.withExtraHeaders("requester" -> "None", "Token" -> "None")
 
     val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team/members"
 
-    def isHttpCodeFailure: Option[(Either[ConnectorError, _]) => Boolean] =
-      Some { errorOrMembers: Either[ConnectorError, _] =>
+    def isHttpCodeFailure: Option[(Either[UMPError, _]) => Boolean] =
+      Some { errorOrMembers: Either[UMPError, _] =>
       errorOrMembers match {
         case Left(HTTPError(code)) if code != 200 => true
         case _ => false
@@ -151,7 +96,7 @@ trait UserManagementConnector extends UserManagementPortalLink {
   }
 
 
-  def getTeamDetails(team: String)(implicit hc: HeaderCarrier): Future[Either[ConnectorError, TeamDetails]] = {
+  def getTeamDetails(team: String)(implicit hc: HeaderCarrier): Future[Either[UMPError, TeamDetails]] = {
     val newHeaderCarrier = hc.withExtraHeaders("requester" -> "None", "Token" -> "None")
     val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team"
     withTimerAndCounter("ump-teamdetails") {
@@ -173,7 +118,7 @@ trait UserManagementConnector extends UserManagementPortalLink {
   }
 
 
-  def extractData[T](team: String, response: HttpResponse)(extractor: JsValue => Option[JsValue])(implicit rd: Reads[T]): Either[ConnectorError, T] = {
+  def extractData[T](team: String, response: HttpResponse)(extractor: JsValue => Option[JsValue])(implicit rd: Reads[T]): Either[UMPError, T] = {
 
    extractor(response.json).flatMap{ js => js.asOpt[T] } match {
      case Some(x) => Right(x)
@@ -181,7 +126,7 @@ trait UserManagementConnector extends UserManagementPortalLink {
    }
   }
 
-  private def extractMembers(team: String, response: HttpResponse): Either[ConnectorError, Seq[TeamMember]] = {
+  private def extractMembers(team: String, response: HttpResponse): Either[UMPError, Seq[TeamMember]] = {
 
     val left = Left(NoData(umpMyTeamsPageUrl(team)))
 
@@ -199,15 +144,16 @@ trait UserManagementConnector extends UserManagementPortalLink {
 object UserManagementConnector extends UserManagementConnector {
   override val http = WSHttp
 
-  sealed trait ConnectorError
+  sealed trait UMPError
 
-  case class NoData(linkToRectify: String) extends ConnectorError
+  case class NoData(linkToRectify: String) extends UMPError
 
-  case class HTTPError(code: Int) extends ConnectorError
+  case class HTTPError(code: Int) extends UMPError
 
-  case class ConnectionError(exception: Throwable) extends ConnectorError {
+  case class ConnectionError(exception: Throwable) extends UMPError {
     override def toString: String = exception.getMessage
   }
+
 
   case class TeamMember(displayName: Option[String],
                         familyName: Option[String],

@@ -22,12 +22,14 @@ import java.time.LocalDateTime
 import play.api.Logger
 import play.api.libs.json._
 import uk.gov.hmrc.cataloguefrontend.DigitalService.DigitalServiceRepository
-import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, ConnectorError, HTTPError}
+import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.ConnectionError
+import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.HTTPError
+import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
+
 import uk.gov.hmrc.cataloguefrontend.config.WSHttp
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
-//import uk.gov.hmrc.cataloguefrontend.JavaDateTimeJsonFormatter._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -126,14 +128,14 @@ trait TeamsAndRepositoriesConnector extends ServicesConfig {
     }
   }
 
-  def digitalServiceInfo(digitalServiceName: String)(implicit hc: HeaderCarrier): Future[Either[ConnectorError, Timestamped[DigitalService]]] = {
+  def digitalServiceInfo(digitalServiceName: String)(implicit hc: HeaderCarrier): Future[Either[TeamsAndRepositoriesError, Timestamped[DigitalService]]] = {
     val url = teamsAndServicesBaseUrl + s"/api/digital-services/${URLEncoder.encode(digitalServiceName, "UTF-8")}"
 
     http.GET[HttpResponse](url)
       .map { response =>
         response.status match {
-          case 404 => Left(HTTPError(404))
           case 200 => Right(timestamp[DigitalService](response))
+          case statusCode => Left(HTTPError(statusCode))
         }
       }.recover {
       case ex =>
@@ -184,4 +186,12 @@ object TeamsAndRepositoriesConnector extends TeamsAndRepositoriesConnector {
   override val http = WSHttp
 
   override def teamsAndServicesBaseUrl: String = baseUrl("teams-and-services")
+
+  sealed trait TeamsAndRepositoriesError
+
+  case class HTTPError(code: Int) extends TeamsAndRepositoriesError
+
+  case class ConnectionError(exception: Throwable) extends TeamsAndRepositoriesError {
+    override def toString: String = exception.getMessage
+  }
 }
