@@ -134,7 +134,42 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
       teamMembers <- EitherT(errorOrTeamMembersLookupF)
     } yield timestampedDigitalService.map(digitalService => DigitalServiceDetails(digitalServiceName, teamMembers, getRepos(digitalService)))
 
-    digitalServiceDetails.value.map(d => Ok(digital_service_info_tom(digitalServiceName, d)))
+    digitalServiceDetails.value.map(d => Ok(digital_service_info_tom(digitalServiceName, d, None)))
+  }
+
+  def digitalServiceArmin(digitalServiceName: String) = Action.async { implicit request =>
+    import cats.instances.future._
+
+    type TeamsAndRepoType[A] = Future[Either[TeamsAndRepositoriesError, A]]
+
+    val eventualDigitalServiceInfoF: TeamsAndRepoType[Timestamped[DigitalService]] =
+    teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
+
+
+    val errorOrTeamNames: TeamsAndRepoType[Seq[String]] =
+    eventualDigitalServiceInfoF.map(_.right.map(_.data.repositories.flatMap(_.teamNames)).right.map(_.distinct))
+
+    val errorOrTeamMembersLookupF: Future[Either[TeamsAndRepositoriesError, Map[String, Either[UMPError, Seq[DisplayableTeamMember]]]]] = errorOrTeamNames.flatMap {
+      case Right(teamNames) =>
+        userManagementConnector
+          .getTeamMembersForTeams(teamNames)
+          .map(convertToDisplayableTeamMembers)
+          .map(Right(_))
+      case Left(connectorError) =>
+        Future.successful(Left(connectorError))
+    }
+
+
+    val digitalServiceDetails: EitherT[Future, TeamsAndRepositoriesError, Timestamped[DigitalServiceDetails]] = for {
+      timestampedDigitalService <- EitherT(eventualDigitalServiceInfoF)
+      teamMembers <- EitherT(errorOrTeamMembersLookupF)
+    } yield timestampedDigitalService.map(digitalService => DigitalServiceDetails(digitalServiceName, teamMembers, getRepos(digitalService)))
+
+    def getDigitalServiceOwner = TeamMember(Some("Armin Keyvanloo"), None, None, None, None, None)
+
+    digitalServiceDetails.value.map(d => {
+      Ok(digital_service_info_tom(digitalServiceName, d, Some(getDigitalServiceOwner)))
+    })
   }
 
   def getRepos(data: DigitalService) = {
