@@ -27,12 +27,16 @@ import play.api.data.{Form, Mapping}
 import play.api.i18n.Messages.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc._
+import play.modules.reactivemongo.MongoDbConnection
 import play.twirl.api.Html
 import uk.gov.hmrc.cataloguefrontend.DisplayableTeamMembers.DisplayableTeamMember
 import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, TeamMember, UMPError}
+import uk.gov.hmrc.cataloguefrontend.events.{DefaultReadModelService, MongoEventRepository, ReadModelService, ServiceOwnerUpdatedEventData}
+import uk.gov.hmrc.mongo.MongoConnector
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -44,7 +48,7 @@ case class DigitalServiceDetails(digitalServiceName: String,
 
 
 
-object CatalogueController extends CatalogueController {
+object CatalogueController extends CatalogueController with MongoDbConnection {
 
   override def userManagementConnector: UserManagementConnector = UserManagementConnector
 
@@ -52,8 +56,9 @@ object CatalogueController extends CatalogueController {
 
   override def indicatorsConnector: IndicatorsConnector = IndicatorsConnector
 
-  override def deploymentsService: DeploymentsService = new DeploymentsService(ServiceDeploymentsConnector, TeamsAndRepositoriesConnector)
+  lazy override val deploymentsService: DeploymentsService = new DeploymentsService(ServiceDeploymentsConnector, TeamsAndRepositoriesConnector)
 
+  lazy override val readModelService = new DefaultReadModelService(new MongoEventRepository(db))
 }
 
 trait CatalogueController extends FrontendController with UserManagementPortalLink {
@@ -75,8 +80,19 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
 
   def deploymentsService: DeploymentsService
 
+  def readModelService: ReadModelService
+
   def landingPage() = Action { request =>
     Ok(landing_page())
+  }
+
+  def serviceOwner(digitalService: String) = Action {
+    readModelService.getForDigitalService(digitalService).fold(NotFound(s"owner for $digitalService not found"))(ds => Ok(Json.toJson(ds)))
+  }
+
+  def addServiceOwner = Action.async(parse.json) { request =>
+    val serviceOwnerUpdatedEventData = request.body.as[ServiceOwnerUpdatedEventData]
+    readModelService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map(_ => Ok(s"Event $serviceOwnerUpdatedEventData saved!"))
   }
 
   def allTeams() = Action.async { implicit request =>
@@ -143,11 +159,11 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     type TeamsAndRepoType[A] = Future[Either[TeamsAndRepositoriesError, A]]
 
     val eventualDigitalServiceInfoF: TeamsAndRepoType[Timestamped[DigitalService]] =
-    teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
+      teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
 
 
     val errorOrTeamNames: TeamsAndRepoType[Seq[String]] =
-    eventualDigitalServiceInfoF.map(_.right.map(_.data.repositories.flatMap(_.teamNames)).right.map(_.distinct))
+      eventualDigitalServiceInfoF.map(_.right.map(_.data.repositories.flatMap(_.teamNames)).right.map(_.distinct))
 
     val errorOrTeamMembersLookupF: Future[Either[TeamsAndRepositoriesError, Map[String, Either[UMPError, Seq[DisplayableTeamMember]]]]] = errorOrTeamNames.flatMap {
       case Right(teamNames) =>
@@ -165,11 +181,13 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
       teamMembers <- EitherT(errorOrTeamMembersLookupF)
     } yield timestampedDigitalService.map(digitalService => DigitalServiceDetails(digitalServiceName, teamMembers, getRepos(digitalService)))
 
-    def getDigitalServiceOwner = TeamMember(Some("Armin Keyvanloo"), None, None, None, None, None)
-
     digitalServiceDetails.value.map(d => {
-      Ok(digital_service_info(digitalServiceName, d, Some(getDigitalServiceOwner)))
+      Ok(digital_service_info(digitalServiceName, d, readModelService.getForDigitalService(digitalServiceName)))
     })
+  }
+
+  def allUsers = Action {
+    Ok(Json.toJson(readModelService.getAllUsers))
   }
 
   def getRepos(data: DigitalService) = {

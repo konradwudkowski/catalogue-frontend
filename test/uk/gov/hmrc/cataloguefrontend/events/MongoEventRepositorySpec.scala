@@ -66,21 +66,18 @@ class MongoEventRepositorySpec extends UnitSpec with LoneElement with MongoSpecS
 
       await(mongoEventRepository.collection.insert(Json.obj(
         "eventType" -> "ServiceOwnerUpdated" ,
-        "eventData" ->
-          Json.obj(
-            "type" -> "ServiceOwnerUpdatedEventData",
             "data" -> Json.obj(
               "service" -> "Catalogue",
               "name" -> "Joe Black"
-            )
           ),
-        "timestamp" -> 1494625868
+        "timestamp" -> 1494625868,
+        "metadata" -> Json.obj()
       )))
 
       val events: Seq[Event] = await(mongoEventRepository.getAllEvents)
 
       events.size shouldBe 1
-      events.head shouldBe Event(EventType.ServiceOwnerUpdated, ServiceOwnerUpdatedEventData("Catalogue", "Joe Black"), 1494625868)
+      events.head shouldBe Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
     }
 
 //    "return all the deployments in descending order of productionDate" in {
@@ -110,15 +107,15 @@ class MongoEventRepositorySpec extends UnitSpec with LoneElement with MongoSpecS
 
   "getEventsByType" should {
     "return all the right events" in {
-      val serviceOwnerUpdateEvent = Event(EventType.ServiceOwnerUpdated, ServiceOwnerUpdatedEventData("Catalogue", "Joe Black"), 1494625868)
-      val otherEvent = Event(EventType.Other, ServiceOwnerUpdatedEventData("Catalogue", "Joe Black"), 1494625868)
+      val serviceOwnerUpdateEvent = Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+      val otherEvent = Event(EventType.Other, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
 
       await(mongoEventRepository.add(serviceOwnerUpdateEvent))
 
       val events: Seq[Event] = await(mongoEventRepository.getEventsByType(EventType.ServiceOwnerUpdated))
 
       events.size shouldBe 1
-      events.head shouldBe Event(EventType.ServiceOwnerUpdated, ServiceOwnerUpdatedEventData("Catalogue", "Joe Black"), 1494625868)
+      events.head shouldBe Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
     }
   }
 
@@ -144,7 +141,7 @@ class MongoEventRepositorySpec extends UnitSpec with LoneElement with MongoSpecS
 
   "add" should {
     "be able to insert a new record and update it as well" in {
-      val event = Event(EventType.ServiceOwnerUpdated, ServiceOwnerUpdatedEventData("Catalogue", "Joe Black"), 1494625868)
+      val event = Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
       await(mongoEventRepository.add(event))
       val all = await(mongoEventRepository.getAllEvents)
 

@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cataloguefrontend.events
 
+import java.util.Date
+
 import play.api.libs.json._
 
 
@@ -27,26 +29,13 @@ case class SomeOtherEventData(something: String, somethingElse: Long) extends Ev
 object EventData extends EventData {
   implicit val  serviceOwnerUpdatedEventDataFormat = Json.format[ServiceOwnerUpdatedEventData]
   implicit val  someOtherEventDataFormat = Json.format[SomeOtherEventData]
-
-  def unapply(eventData: EventData): Option[(String, JsValue)] = {
-    val (prod: Product, sub) = eventData match {
-      case eventData: ServiceOwnerUpdatedEventData => (eventData, Json.toJson(eventData)(serviceOwnerUpdatedEventDataFormat))
-      case eventData: SomeOtherEventData => (eventData, Json.toJson(eventData)(someOtherEventDataFormat))
-    }
-    Some(prod.productPrefix -> sub)
-  }
-
-  def apply(`type`: String, data: JsValue): EventData = {
-    (`type` match {
-      case "ServiceOwnerUpdatedEventData" => Json.fromJson[ServiceOwnerUpdatedEventData](data)(serviceOwnerUpdatedEventDataFormat)
-      case "SomeOtherEventData" => Json.fromJson[SomeOtherEventData](data)(someOtherEventDataFormat)
-    }).get
-  }
-
-  implicit val eventDataFmt = Json.format[EventData]
 }
 
-case class Event(eventType: EventType.Value, eventData: EventData, timestamp: Long)
+case class Event(eventType: EventType.Value,
+                 timestamp: Long = new Date().getTime,
+                 data: JsObject,
+                 metadata: JsObject = JsObject(Seq.empty))
+
 object Event {
   implicit val format = Json.format[Event]
 }

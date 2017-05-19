@@ -16,21 +16,11 @@
 
 package uk.gov.hmrc.cataloguefrontend.events
 
-import java.sql.Timestamp
-import java.time.ZoneOffset
-
-import com.google.inject.{Inject, Singleton}
-import play.api.libs.json._
 import reactivemongo.api.DB
-import reactivemongo.api.indexes.IndexType
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import uk.gov.hmrc.mongo.{MongoConnector, ReactiveRepository}
-
-import scala.concurrent.{ExecutionContext, Future}
-import reactivemongo.api.indexes.Index
-import uk.gov.hmrc.cataloguefrontend.FutureHelpers
 import uk.gov.hmrc.cataloguefrontend.FutureHelpers.withTimerAndCounter
-import uk.gov.hmrc.cataloguefrontend.events.EventType._
+import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -53,22 +43,9 @@ class MongoEventRepository(mongo: () => DB)
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
     Future.sequence(
       Seq(
-        collection.indexesManager.ensure(Index(Seq("eventType" -> IndexType.Hashed), name = Some("eventTypeIdx")))
+        collection.indexesManager.ensure(Index(Seq("timestamp" -> IndexType.Descending), name = Some("eventTimestampIdx")))
       )
     )
-
-
-//  def update(teamAndRepos: Event): Future[Event] = {
-//
-//    withTimerAndCounter("mongo.update") {
-//      for {
-//        update <- collection.update(selector = Json.obj("eventType" -> Json.toJson(teamAndRepos.teamName)), update = teamAndRepos, upsert = true)
-//      } yield update match {
-//        case lastError if lastError.inError => throw new RuntimeException(s"failed to persist $teamAndRepos")
-//        case _ => teamAndRepos
-//      }
-//    }
-//  }
 
   override def add(event: Event): Future[Boolean] = {
     withTimerAndCounter("mongo.write") {
@@ -79,22 +56,12 @@ class MongoEventRepository(mongo: () => DB)
     }
   }
 
-//  def getForService(serviceName: String): Future[Option[Seq[Deployment]]] = {
-//
-//    withTimerAndCounter("mongo.read") {
-//      find("name" -> BSONDocument("$eq" -> serviceName)) map {
-//        case Nil => None
-//        case data => Some(data.sortBy(_.productionDate.toEpochSecond(ZoneOffset.UTC)).reverse)
-//      }
-//    }
-//  }
-
   override def getEventsByType(eventType: EventType.Value): Future[Seq[Event]] = {
 
     withTimerAndCounter("mongo.read") {
       find("eventType" -> BSONDocument("$eq" -> eventType.toString)) map {
         case Nil => Nil
-        case data => data.sortBy(_.timestamp).reverse
+        case data => data.sortBy(_.timestamp)
       }
     }
   }
@@ -104,12 +71,4 @@ class MongoEventRepository(mongo: () => DB)
 
   override def clearAllData: Future[Boolean] = super.removeAll().map(!_.hasErrors)
 
-//  def deleteTeam(teamName: String): Future[String] = {
-//    withTimerAndCounter("mongo.cleanup") {
-//      collection.remove(query = Json.obj("teamName" -> Json.toJson(teamName))).map {
-//        case lastError if lastError.inError => throw new RuntimeException(s"failed to remove $teamName")
-//        case _ => teamName
-//      }
-//    }
-//  }
 }

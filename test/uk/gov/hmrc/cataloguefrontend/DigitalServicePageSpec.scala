@@ -37,6 +37,7 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.cataloguefrontend.DateHelper._
 import uk.gov.hmrc.cataloguefrontend.JsonData._
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.TeamMember
+import uk.gov.hmrc.cataloguefrontend.events.ReadModelService
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.collection.JavaConversions._
@@ -210,6 +211,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
+        override def readModelService: ReadModelService = ???
       }
 
       val exception = new RuntimeException("Boooom!")
@@ -244,6 +246,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
+        override def readModelService: ReadModelService = ???
       }
 
       val teamName = "Team1"
@@ -280,6 +283,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
+        override def readModelService: ReadModelService = ???
       }
 
       val teamName = "Team1"
@@ -317,6 +321,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
+        override def readModelService: ReadModelService = ???
       }
 
       val teamName = "Team1"

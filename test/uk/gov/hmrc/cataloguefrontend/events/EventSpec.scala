@@ -18,45 +18,34 @@ package uk.gov.hmrc.cataloguefrontend.events
 
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FunSpec, FunSuite, Matchers}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, JsString, Json}
 
 class EventSpec extends FunSpec with Matchers with MockitoSugar {
 
   describe("Json write") {
 
-    it("should convert a json string to an Event with ServiceOwnerUpdatedEventData") {
+    it("should convert a valid json string to an Event") {
       val jsonString = """{
-        |  "eventType" : "ServiceOwnerUpdated",
-        |  "eventData" : {
-        |    "type" : "ServiceOwnerUpdatedEventData",
-        |    "data" : {
-        |      "service" : "Catalogue",
-        |      "name" : "Armin Keyvanloo"
-        |    }
-        |  },
-        |  "timestamp" : 123
-        |}""".stripMargin
+                         |  "eventType" : "ServiceOwnerUpdated",
+                         |  "data" : {
+                         |      "service" : "Catalogue",
+                         |      "name" : "Armin Keyvanloo"
+                         |    },
+                         |  "metadata" : {},
+                         |  "timestamp" : 123
+                         |}"""
+        .stripMargin
 
-      Json.parse(jsonString).as[Event] == Event(EventType.ServiceOwnerUpdated, ServiceOwnerUpdatedEventData("Catalogue", "Armin Keyvanloo"), 123l)
+      val event = Json.parse(jsonString).as[Event]
+      event shouldBe Event(EventType.ServiceOwnerUpdated, timestamp = 123l, JsObject(Seq("service" -> JsString("Catalogue"), "name" -> JsString("Armin Keyvanloo"))))
     }
 
-    it("should covert an Event with ServiceOwnerUpdatedEventData to json string") {
-      val event = Event(EventType.ServiceOwnerUpdated, ServiceOwnerUpdatedEventData("Catalogue", "Armin Keyvanloo"), 123l)
+    it("should covert an Event to json and back correctly") {
+      val event = Event(EventType.ServiceOwnerUpdated, timestamp = 123l, JsObject(Seq("service" -> JsString("Catalogue"), "name" -> JsString("Armin Keyvanloo"))))
 
       val js = Json.toJson(event)
 
-      Json.fromJson[Event](js) == event
-
-    }
-
-    it("should covert an Event with other event data type to json string") {
-      val event = Event(EventType.Other, SomeOtherEventData("Catalogue", 1000l), 123l)
-
-      val js = Json.toJson(event)
-
-      Json.fromJson[Event](js) == event
-
-      println(Json.prettyPrint(js))
+      js.as[Event] shouldBe event
     }
 
   }

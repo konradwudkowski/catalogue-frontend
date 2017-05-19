@@ -39,6 +39,7 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
   implicit override lazy val app = new GuiceApplicationBuilder().configure (
     "microservice.services.user-management.url" -> endpointMockUrl,
+    "microservice.services.user-management.url-v2" -> endpointMockUrl,
     "microservice.services.user-management.myTeamsUrl" -> "http://some.ump.com/myTeams",
     "play.http.requestHandler" -> "play.api.http.DefaultHttpRequestHandler"
   ).build()
@@ -271,6 +272,116 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
         getMembersDetails(_.username.value) shouldBe Seq("joe.black", "james.roger")
         getMembersDetails(_.primaryEmail.value) shouldBe Seq("joe.black@digital.hmrc.gov.uk", "james.roger@hmrc.gsi.gov.uk")
       }
+
+    }
+
+    describe("getAllUsersFromUMP") {
+
+      it("should get the users ") {
+        stubUserManagementEndPoint(
+          url = "/v2/organisations/users",
+          jsonFileNameOpt = Some("/all-users.json")
+        )
+
+        val allUsers = UserManagementConnector.getAllUsersFromUMP().futureValue
+
+        allUsers.right.value.size shouldBe 3
+
+        def getMembersDetails(extractor: (TeamMember) => String): Iterable[String] =
+          allUsers.right.value.map(extractor)
+
+        getMembersDetails(_.displayName.value) shouldBe Seq("Ricky Micky", "Aleks Malkes", "Anand Manand")
+        getMembersDetails(_.username.value) shouldBe Seq("ricky.micky", "aleks.malkes", "anand.manand")
+        getMembersDetails(_.primaryEmail.value) shouldBe Seq("ricky.micky@gov.uk", "aleks.malkes@gov.uk", "anand.manand@gov.uk")
+
+
+      }
+
+//      it("should return an Http error for calls with non-200 status codes") {
+//        val teamNames = Seq("Team1", "Team2")
+//
+//        stubUserManagementEndPoint(
+//          url = "/v1/organisations/mdtp/teams/Team1/members",
+//          jsonFileNameOpt = Some("/user-management-response-team1.json")
+//        )
+//
+//        stubUserManagementEndPoint(
+//          url = "/v1/organisations/mdtp/teams/Team2/members",
+//          jsonFileNameOpt = None,
+//          httpCode = 404
+//        )
+//
+//        val teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]] = UserManagementConnector.getTeamMembersForTeams(teamNames)(HeaderCarrier.fromHeadersAndSession(FakeHeaders())).futureValue
+//
+//        teamsAndMembers.keys should contain theSameElementsAs teamNames
+//
+//        val team1Result = teamsAndMembers.get("Team1").value
+//        val team2Result = teamsAndMembers.get("Team2").value
+//
+//        team2Result should===(Left(HTTPError(404)))
+//
+//        def getMembersDetails(extractor: (TeamMember) => String): Iterable[String] =
+//          team1Result.right.value.map(extractor)
+//
+//        getMembersDetails(_.displayName.value) shouldBe Seq("Joe Black", "James Roger")
+//        getMembersDetails(_.username.value) shouldBe Seq("joe.black", "james.roger")
+//        getMembersDetails(_.primaryEmail.value) shouldBe Seq("joe.black@digital.hmrc.gov.uk", "james.roger@hmrc.gsi.gov.uk")
+//      }
+
+//      it("should return a connection error for calls which fail with an exception") {
+//
+//        val mockedHttpGet = mock[HttpGet]
+//
+//        val userManagementConnector = new UserManagementConnector {
+//          override val userManagementBaseUrl = "http://some.non.existing.url.com"
+//          override val http = mockedHttpGet
+//        }
+//
+//        val teamNames = Seq("Team1", "Team2")
+//
+//        val exception = new RuntimeException("Boooom!")
+//        when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(exception))
+//
+//        val teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]] = userManagementConnector.getTeamMembersForTeams(teamNames)(HeaderCarrier.fromHeadersAndSession(FakeHeaders())).futureValue
+//
+//        teamsAndMembers.keys should contain theSameElementsAs teamNames
+//
+//        val team1Result = teamsAndMembers.get("Team1").value
+//        val team2Result = teamsAndMembers.get("Team2").value
+//
+//        team1Result should===(Left(ConnectionError(exception)))
+//        team2Result should===(Left(ConnectionError(exception)))
+//      }
+
+//      it("should return a no data error if the json from UMP doesn't conform to the expected shape") {
+//        val teamNames = Seq("Team1", "Team2")
+//
+//        stubUserManagementEndPoint(
+//          url = "/v1/organisations/mdtp/teams/Team1/members",
+//          jsonFileNameOpt = Some("/user-management-response-team1.json")
+//        )
+//
+//        stubUserManagementEndPoint(
+//          url = "/v1/organisations/mdtp/teams/Team2/members",
+//          jsonFileNameOpt = Some("/user-management-team-details-nodata-response.json")
+//        )
+//
+//        val teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]] = UserManagementConnector.getTeamMembersForTeams(teamNames)(HeaderCarrier.fromHeadersAndSession(FakeHeaders())).futureValue
+//
+//        teamsAndMembers.keys should contain theSameElementsAs teamNames
+//
+//        val team1Result = teamsAndMembers.get("Team1").value
+//        val team2Result = teamsAndMembers.get("Team2").value
+//
+//        team2Result should===(Left(NoData("http://some.ump.com/myTeams/Team2?edit")))
+//
+//        def getMembersDetails(extractor: (TeamMember) => String): Iterable[String] =
+//          team1Result.right.value.map(extractor)
+//
+//        getMembersDetails(_.displayName.value) shouldBe Seq("Joe Black", "James Roger")
+//        getMembersDetails(_.username.value) shouldBe Seq("joe.black", "james.roger")
+//        getMembersDetails(_.primaryEmail.value) shouldBe Seq("joe.black@digital.hmrc.gov.uk", "james.roger@hmrc.gsi.gov.uk")
+//      }
 
     }
   }
