@@ -17,10 +17,9 @@
 package uk.gov.hmrc.cataloguefrontend
 
 
-import java.io
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.{LocalDateTime, ZoneOffset}
 
-import cats.data.{EitherT, OptionT}
+import cats.data.EitherT
 import play.api.Play.current
 import play.api.data.Forms._
 import play.api.data.{Form, Mapping}
@@ -28,12 +27,10 @@ import play.api.i18n.Messages.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.modules.reactivemongo.MongoDbConnection
-import play.twirl.api.Html
 import uk.gov.hmrc.cataloguefrontend.DisplayableTeamMembers.DisplayableTeamMember
 import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
-import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, TeamMember, UMPError}
+import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{TeamMember, UMPError}
 import uk.gov.hmrc.cataloguefrontend.events._
-import uk.gov.hmrc.mongo.MongoConnector
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
 
@@ -45,7 +42,6 @@ case class TeamActivityDates(firstActive: Option[LocalDateTime], lastActive: Opt
 case class DigitalServiceDetails(digitalServiceName: String,
                                  teamMembersLookUp: Map[String, Either[UMPError, Seq[DisplayableTeamMember]]],
                                  repos: Map[String, Seq[String]])
-
 
 
 object CatalogueController extends CatalogueController with MongoDbConnection {
@@ -94,9 +90,9 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     readModelService.getForDigitalService(digitalService).fold(NotFound(s"owner for $digitalService not found"))(ds => Ok(Json.toJson(ds)))
   }
 
-  def addServiceOwner = Action.async(parse.json) { request =>
+  def addServiceOwner = Action.async(parse.json) { implicit request =>
     val serviceOwnerUpdatedEventData = request.body.as[ServiceOwnerUpdatedEventData]
-    eventService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map(_ => Ok(s"Event $serviceOwnerUpdatedEventData saved!"))
+    eventService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map(_ => Ok(Json.toJson(s"${serviceOwnerUpdatedEventData.name}")))
   }
 
   def allTeams() = Action.async { implicit request =>
