@@ -183,9 +183,8 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
       )), extraHeaders = Map("X-Cache-Timestamp" -> "Fri, 14 Oct 1983 10:03:23 GMT"))
 
 
-      mockHttpApiCall(s"/v1/organisations/mdtp/teams/${team1}/members", "/user-management-response-team1.json")
-      mockHttpApiCall(s"/v1/organisations/mdtp/teams/${team2}/members", "/user-management-response-team2.json")
-
+      mockHttpApiCall(s"/v2/organisations/teams/$team1/members", "/user-management-response-team1.json")
+      mockHttpApiCall(s"/v2/organisations/teams/$team2/members", "/user-management-response-team2.json")
 
       val response = await(WS.url(s"http://localhost:$port/digital-service/${digitalServiceName}").get)
 

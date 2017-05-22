@@ -39,7 +39,6 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
   implicit override lazy val app = new GuiceApplicationBuilder().configure (
     "microservice.services.user-management.url" -> endpointMockUrl,
-    "microservice.services.user-management.url-v2" -> endpointMockUrl,
     "microservice.services.user-management.myTeamsUrl" -> "http://some.ump.com/myTeams",
     "play.http.requestHandler" -> "play.api.http.DefaultHttpRequestHandler"
   ).build()
@@ -108,7 +107,8 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
     it("should get the team details from the user-management service") {
       stubUserManagementEndPoint(
-        url = "/v1/organisations/mdtp/teams/TEAM-A",
+//        url = "/v1/organisations/mdtp/teams/TEAM-A",
+        url = "/v2/organisations/teams/TEAM-A",
         jsonFileNameOpt = Some("/user-management-team-details-response.json")
       )
 
@@ -124,7 +124,8 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
     it("no organization/data field in json for team details") {
       stubUserManagementEndPoint(
-        url = "/v1/organisations/mdtp/teams/TEAM-A",
+//        url = "/v1/organisations/mdtp/teams/TEAM-A",
+        url = "/v2/organisations/teams/TEAM-A",
         jsonFileNameOpt = Some("/user-management-team-details-nodata-response.json")
       )
 
@@ -135,7 +136,8 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
     it("api returns an error code for team details") {
       stubUserManagementEndPoint(
-        url = "/v1/organisations/mdtp/teams/TEAM-A",
+//        url = "/v1/organisations/mdtp/teams/TEAM-A",
+        url = "/v2/organisations/teams/TEAM-A",
         jsonFileNameOpt = None,
         httpCode = 404
       )
@@ -167,13 +169,15 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
         val teamNames = Seq("Team1", "Team2")
 
         stubUserManagementEndPoint(
-        url = "/v1/organisations/mdtp/teams/Team1/members",
+//        url = "/v1/organisations/mdtp/teams/Team1/members",
+        url =  "/v2/organisations/teams/Team1/members",
         jsonFileNameOpt = Some("/user-management-response-team1.json")
         )
 
         stubUserManagementEndPoint(
-        url = "/v1/organisations/mdtp/teams/Team2/members",
-        jsonFileNameOpt = Some("/user-management-response-team2.json")
+//        url = "/v1/organisations/mdtp/teams/Team2/members",
+          url =  "/v2/organisations/teams/Team2/members",
+          jsonFileNameOpt = Some("/user-management-response-team2.json")
         )
         val teamsAndMembers = UserManagementConnector.getTeamMembersForTeams(teamNames)(HeaderCarrier.fromHeadersAndSession(FakeHeaders())).futureValue
 
@@ -191,12 +195,16 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
         val teamNames = Seq("Team1", "Team2")
 
         stubUserManagementEndPoint(
-          url = "/v1/organisations/mdtp/teams/Team1/members",
+//          url = "/v1/organisations/mdtp/teams/Team1/members",
+          url =  "/v2/organisations/teams/Team1/members",
+
           jsonFileNameOpt = Some("/user-management-response-team1.json")
         )
 
         stubUserManagementEndPoint(
-          url = "/v1/organisations/mdtp/teams/Team2/members",
+//          url = "/v1/organisations/mdtp/teams/Team2/members",
+          url =  "/v2/organisations/teams/Team2/members",
+
           jsonFileNameOpt = None,
           httpCode = 404
         )
@@ -247,12 +255,14 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
         val teamNames = Seq("Team1", "Team2")
 
         stubUserManagementEndPoint(
-          url = "/v1/organisations/mdtp/teams/Team1/members",
+//          url = "/v1/organisations/mdtp/teams/Team1/members",
+          url =  "/v2/organisations/teams/Team1/members",
           jsonFileNameOpt = Some("/user-management-response-team1.json")
         )
 
         stubUserManagementEndPoint(
-          url = "/v1/organisations/mdtp/teams/Team2/members",
+//          url = "/v1/organisations/mdtp/teams/Team2/members",
+          url =  "/v2/organisations/teams/Team2/members",
           jsonFileNameOpt = Some("/user-management-team-details-nodata-response.json")
         )
 
@@ -392,7 +402,8 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
     stubUserManagementEndPoint(
       GET,
       httpCode,
-      s"/v1/organisations/mdtp/teams/$teamName/members",
+//      s"/v1/organisations/mdtp/teams/$teamName/members",
+      s"/v2/organisations/teams/$teamName/members",
       jsonFileNameOpt)
 
     val errorOrResponse: Either[UMPError, Seq[TeamMember]] = UserManagementConnector.getTeamMembersFromUMP(teamName)(HeaderCarrier.fromHeadersAndSession(FakeHeaders())).futureValue

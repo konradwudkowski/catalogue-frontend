@@ -77,7 +77,8 @@ trait UserManagementConnector extends UserManagementPortalLink {
   def getTeamMembersFromUMP(team: String)(implicit hc: HeaderCarrier): Future[Either[UMPError, Seq[TeamMember]]] = {
     val newHeaderCarrier = hc.withExtraHeaders("requester" -> "None", "Token" -> "None")
 
-    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team/members"
+//    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team/members"
+    val url = s"$userManagementBaseUrl/v2/organisations/teams/$team/members"
 
     def isHttpCodeFailure: Option[(Either[UMPError, _]) => Boolean] =
       Some { errorOrMembers: Either[UMPError, _] =>
@@ -125,7 +126,7 @@ trait UserManagementConnector extends UserManagementPortalLink {
 
     val newHeaderCarrier = HeaderCarrier().withExtraHeaders("requester" -> "None", "Token" -> "None")
 
-    val url = s"$userManagementBaseUrlV2/v2/organisations/users"
+    val url = s"$userManagementBaseUrl/v2/organisations/users"
 
     def isHttpCodeFailure: Option[(Either[UMPError, _]) => Boolean] =
       Some { errorOrMembers: Either[UMPError, _] =>
@@ -155,14 +156,12 @@ trait UserManagementConnector extends UserManagementPortalLink {
 
   def getTeamDetails(team: String)(implicit hc: HeaderCarrier): Future[Either[UMPError, TeamDetails]] = {
     val newHeaderCarrier = hc.withExtraHeaders("requester" -> "None", "Token" -> "None")
-    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team"
+//    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team"
+    val url = s"$userManagementBaseUrl/v2/organisations/teams/$team"
     withTimerAndCounter("ump-teamdetails") {
       http.GET[HttpResponse](url)(httpReads, newHeaderCarrier).map { response =>
         response.status match {
-          case 200 => extractData[TeamDetails](team, response) {
-            json =>
-              (json \\ "organisations").lastOption.flatMap(x => (x \ "data").toOption)
-          }
+          case 200 => extractData[TeamDetails](team, response)
           case httpCode => Left(HTTPError(httpCode))
         }
       }.recover {
@@ -175,9 +174,9 @@ trait UserManagementConnector extends UserManagementPortalLink {
   }
 
 
-  def extractData[T](team: String, response: HttpResponse)(extractor: JsValue => Option[JsValue])(implicit rd: Reads[T]): Either[UMPError, T] = {
+  def extractData[T](team: String, response: HttpResponse)(implicit rd: Reads[T]): Either[UMPError, T] = {
 
-   extractor(response.json).flatMap{ js => js.asOpt[T] } match {
+   Option(response.json).flatMap{ js => js.asOpt[T] } match {
      case Some(x) => Right(x)
      case _ => Left(NoData(umpMyTeamsPageUrl(team)))
    }
