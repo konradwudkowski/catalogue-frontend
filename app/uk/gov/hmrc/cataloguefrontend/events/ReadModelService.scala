@@ -26,41 +26,42 @@ import scala.concurrent.Future
 
 
 trait ReadModelService {
-  def saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData: ServiceOwnerUpdatedEventData) : Future[Boolean]
 
-  def refreshEventsCache: Unit
-  def refreshUmpCache: Unit
+  def refreshEventsCache: Future[Map[String, String]]
+  def refreshUmpCache: Future[Seq[TeamMember]]
 
-  protected var eventsCache = Map.empty[String, String]
-  protected var umpUsersCache = Seq.empty[TeamMember]
+  private[events] var eventsCache = Map.empty[String, String]
+  protected[events] var umpUsersCache = Seq.empty[TeamMember]
 
   def getForDigitalService(digitalService: String): Option[String] = eventsCache.get(digitalService)
 
   def getAllUsers = umpUsersCache
 }
 
-class DefaultReadModelService(eventRepository: EventRepository) extends ReadModelService {
+class DefaultReadModelService(eventService: EventService, userManagementConnector: UserManagementConnector) extends ReadModelService {
 
   def refreshEventsCache = {
-     val eventualEvents = eventRepository.getAllEvents
+     val eventualEvents = eventService.getAllEvents
 
-     eventualEvents.map(events =>
-       eventsCache = events.toStream.filter(_.eventType == EventType.ServiceOwnerUpdated)
-         .sortBy(_.timestamp)
-         .map(_.data.as[ServiceOwnerUpdatedEventData]).groupBy(_.service)
-         .map{case (service, eventDataList) => (service, eventDataList.last.name)}
-     )
-   }
+     eventualEvents.map { events =>
+      eventsCache = events.toStream.filter(_.eventType == EventType.ServiceOwnerUpdated)
+        .sortBy(_.timestamp)
+        .map(_.data.as[ServiceOwnerUpdatedEventData]).groupBy(_.service)
+        .map { case (service, eventDataList) => (service, eventDataList.last.name) }
+      eventsCache
+    }
 
-  override def saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData: ServiceOwnerUpdatedEventData): Future[Boolean] =
-    eventRepository.add(Event(EventType.ServiceOwnerUpdated, data = Json.toJson(serviceOwnerUpdatedEventData).as[JsObject]))
+  }
 
-  override def refreshUmpCache: Unit = {
-    UserManagementConnector.getAllUsersFromUMP().map {
+  override def refreshUmpCache: Future[Seq[TeamMember]] = {
+    userManagementConnector.getAllUsersFromUMP().map {
       case Right(tms) =>
         Logger.info(s"Got ${tms.length} set of UMP users")
         umpUsersCache = tms
-      case Left(error) => Logger.error(s"An error occurred getting users from ump: $error")
+        umpUsersCache
+      case Left(error) =>
+        Logger.error(s"An error occurred getting users from ump: $error")
+        Nil
     }
     
   }

@@ -32,12 +32,12 @@ import play.twirl.api.Html
 import uk.gov.hmrc.cataloguefrontend.DisplayableTeamMembers.DisplayableTeamMember
 import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, TeamMember, UMPError}
-import uk.gov.hmrc.cataloguefrontend.events.{DefaultReadModelService, MongoEventRepository, ReadModelService, ServiceOwnerUpdatedEventData}
+import uk.gov.hmrc.cataloguefrontend.events._
 import uk.gov.hmrc.mongo.MongoConnector
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class TeamActivityDates(firstActive: Option[LocalDateTime], lastActive: Option[LocalDateTime], firstServiceCreationDate: Option[LocalDateTime])
@@ -58,7 +58,9 @@ object CatalogueController extends CatalogueController with MongoDbConnection {
 
   lazy override val deploymentsService: DeploymentsService = new DeploymentsService(ServiceDeploymentsConnector, TeamsAndRepositoriesConnector)
 
-  lazy override val readModelService = new DefaultReadModelService(new MongoEventRepository(db))
+  lazy override val eventService = new DefaultEventService(new MongoEventRepository(db))
+
+  lazy override val readModelService = new DefaultReadModelService(eventService, UserManagementConnector)
 }
 
 trait CatalogueController extends FrontendController with UserManagementPortalLink {
@@ -80,6 +82,8 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
 
   def deploymentsService: DeploymentsService
 
+  def eventService: EventService
+
   def readModelService: ReadModelService
 
   def landingPage() = Action { request =>
@@ -92,7 +96,7 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
 
   def addServiceOwner = Action.async(parse.json) { request =>
     val serviceOwnerUpdatedEventData = request.body.as[ServiceOwnerUpdatedEventData]
-    readModelService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map(_ => Ok(s"Event $serviceOwnerUpdatedEventData saved!"))
+    eventService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map(_ => Ok(s"Event $serviceOwnerUpdatedEventData saved!"))
   }
 
   def allTeams() = Action.async { implicit request =>

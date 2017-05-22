@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cataloguefrontend.events
 
-import org.scalatest.FunSuite
-
 
 /*
  * Copyright 2017 HM Revenue & Customs
@@ -37,19 +35,15 @@ import org.scalatest.FunSuite
 
 
 
-import java.time.{LocalDateTime, ZoneOffset}
-import java.time.format.DateTimeFormatter
-
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterEach, LoneElement, OptionValues}
 import org.scalatestplus.play.OneAppPerTest
-import reactivemongo.bson.{BSONDocument, BSONLong, BSONObjectID, BSONString}
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
-
-import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.libs.json._
 import reactivemongo.json._
+import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class MongoEventRepositorySpec extends UnitSpec with LoneElement with MongoSpecSupport with ScalaFutures with OptionValues with BeforeAndAfterEach with OneAppPerTest {
 
@@ -61,87 +55,54 @@ class MongoEventRepositorySpec extends UnitSpec with LoneElement with MongoSpecS
   }
 
 
-  "getAll" should {
+  private val timestamp = 1494625868
+
+  "getAllEvents" should {
     "return all the events" in {
 
-      await(mongoEventRepository.collection.insert(Json.obj(
-        "eventType" -> "ServiceOwnerUpdated" ,
-            "data" -> Json.obj(
-              "service" -> "Catalogue",
-              "name" -> "Joe Black"
-          ),
-        "timestamp" -> 1494625868,
-        "metadata" -> Json.obj()
-      )))
+      insertEvent(timestamp)
+      insertEvent(timestamp + 1)
 
       val events: Seq[Event] = await(mongoEventRepository.getAllEvents)
 
-      events.size shouldBe 1
-      events.head shouldBe Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+      events.size shouldBe 2
+      events should contain theSameElementsAs
+        Seq(
+          Event(EventType.ServiceOwnerUpdated, timestamp = timestamp, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject]),
+          Event(EventType.ServiceOwnerUpdated, timestamp = timestamp + 1, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+        )
     }
+  }
 
-//    "return all the deployments in descending order of productionDate" in {
-//
-//      val now: LocalDateTime = LocalDateTime.now()
-//
-//      await(mongoDeploymentsRepository.add(Deployment("test2", "v2", None, productionDate = now.minusDays(6))))
-//      await(mongoDeploymentsRepository.add(Deployment("test3", "v3", None, productionDate = now.minusDays(5))))
-//      await(mongoDeploymentsRepository.add(Deployment("test1", "v1", None, productionDate = now.minusDays(10))))
-//      await(mongoDeploymentsRepository.add(Deployment("test4", "v4", None, productionDate = now.minusDays(2))))
-//      await(mongoDeploymentsRepository.add(Deployment("test5", "vSomeOther1", None, now.minusDays(2), Some(1))))
-//      await(mongoDeploymentsRepository.add(Deployment("test5", "vSomeOther2", None, now, Some(1), None, Seq(Deployer("xyz.abc", now)), None)))
-//
-//      val result: Seq[Deployment] = await(mongoDeploymentsRepository.getAllDeployments)
-//
-//      result.map(x => (x.name, x.version, x.deployers.map(_.name))) shouldBe Seq(
-//        ("test5", "vSomeOther2", Seq("xyz.abc")),
-//        ("test4", "v4", Nil),
-//        ("test5", "vSomeOther1", Nil),
-//        ("test3", "v3", Nil),
-//        ("test2", "v2", Nil),
-//        ("test1", "v1", Nil)
-//      )
-//
-//    }
+  private def insertEvent(theTimestamp: Int) = {
+    await(mongoEventRepository.collection.insert(Json.obj(
+      "eventType" -> "ServiceOwnerUpdated",
+      "data" -> Json.obj(
+        "service" -> "Catalogue",
+        "name" -> "Joe Black"
+      ),
+      "timestamp" -> theTimestamp,
+      "metadata" -> Json.obj()
+    )))
   }
 
   "getEventsByType" should {
     "return all the right events" in {
-      val serviceOwnerUpdateEvent = Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
-      val otherEvent = Event(EventType.Other, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+      val serviceOwnerUpdateEvent = Event(EventType.ServiceOwnerUpdated, timestamp = timestamp, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+      val otherEvent = Event(EventType.Other, timestamp = timestamp, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
 
       await(mongoEventRepository.add(serviceOwnerUpdateEvent))
 
       val events: Seq[Event] = await(mongoEventRepository.getEventsByType(EventType.ServiceOwnerUpdated))
 
       events.size shouldBe 1
-      events.head shouldBe Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+      events.head shouldBe Event(EventType.ServiceOwnerUpdated, timestamp = timestamp, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
     }
   }
 
-//  "getForService" should {
-//    "return deployments for a service sorted in descending order of productionDate" in {
-//      val now: LocalDateTime = LocalDateTime.now()
-//
-//      await(mongoDeploymentsRepository.add(Deployment("randomService", "vSomeOther1", None, now, Some(1))))
-//      await(mongoDeploymentsRepository.add(Deployment("test", "v1", None, productionDate = now.minusDays(10), interval = Some(1))))
-//      await(mongoDeploymentsRepository.add(Deployment("test", "v2", None, productionDate = now.minusDays(6), interval = Some(1))))
-//      await(mongoDeploymentsRepository.add(Deployment("test", "v3", None, productionDate = now.minusDays(5), Some(1))))
-//      await(mongoDeploymentsRepository.add(Deployment("test", "v4", None, productionDate = now.minusDays(2), Some(1))))
-//
-//      val deployments: Option[Seq[Deployment]] = await(mongoDeploymentsRepository.getForService("test"))
-//
-//      deployments.get.size shouldBe 4
-//
-//      deployments.get.map(_.version) shouldBe List("v4", "v3", "v2", "v1")
-//
-//    }
-//  }
-
-
   "add" should {
     "be able to insert a new record and update it as well" in {
-      val event = Event(EventType.ServiceOwnerUpdated, timestamp = 1494625868, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
+      val event = Event(EventType.ServiceOwnerUpdated, timestamp = timestamp, Json.toJson(ServiceOwnerUpdatedEventData("Catalogue", "Joe Black")).as[JsObject])
       await(mongoEventRepository.add(event))
       val all = await(mongoEventRepository.getAllEvents)
 
@@ -151,29 +112,5 @@ class MongoEventRepositorySpec extends UnitSpec with LoneElement with MongoSpecS
       savedEvent shouldBe event
     }
   }
-
-//  "update" should {
-//    "update already existing deployment" in {
-//      val now: LocalDateTime = LocalDateTime.now()
-//      await(mongoDeploymentsRepository.add(Deployment("test", "v", None, now)))
-//
-//      val all = await(mongoDeploymentsRepository.allServicedeployments)
-//
-//      val savedDeployment: Deployment = all.values.flatten.loneElement
-//
-//      await(mongoDeploymentsRepository.update(savedDeployment.copy(leadTime = Some(1))))
-//
-//      val allUpdated = await(mongoDeploymentsRepository.allServicedeployments)
-//      allUpdated.size shouldBe 1
-//      val updatedDeployment: Deployment = allUpdated.values.flatten.loneElement
-//
-//      updatedDeployment.name shouldBe savedDeployment.name
-//      updatedDeployment.version shouldBe savedDeployment.version
-//      updatedDeployment.creationDate shouldBe savedDeployment.creationDate
-//      savedDeployment.productionDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) shouldBe savedDeployment.productionDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
-//      updatedDeployment.leadTime shouldBe Some(1)
-//    }
-//
-//  }
 
 }

@@ -64,7 +64,7 @@ object ApplicationGlobal extends DefaultFrontendGlobal {
       Logger.warn(s"$eventReloadIntervalKey is missing. Event cache reload will be disabled")
     } { reloadInterval =>
       Logger.warn(s"EventReloadInterval set to $reloadInterval seconds")
-      val cancellable = UpdateScheduler.startUpdating(reloadInterval seconds)
+      val cancellable = UpdateScheduler.startUpdatingEventsReadModel(reloadInterval seconds)
       app.injector.instanceOf[ApplicationLifecycle].addStopHook(() => Future(cancellable.cancel()))
     }
   }
@@ -76,7 +76,7 @@ object ApplicationGlobal extends DefaultFrontendGlobal {
       Logger.warn(s"$umpCacheReloadIntervalKey is missing. Ump cache reload will be disabled")
     } { reloadInterval =>
       Logger.warn(s"UMP cache reload interval set to $reloadInterval seconds")
-      val cancellable = UpdateScheduler.startUpdatingUmp(reloadInterval seconds)
+      val cancellable = UpdateScheduler.startUpdatingUmpCacheReadModel(reloadInterval seconds)
       app.injector.instanceOf[ApplicationLifecycle].addStopHook(() => Future(cancellable.cancel()))
     }
   }

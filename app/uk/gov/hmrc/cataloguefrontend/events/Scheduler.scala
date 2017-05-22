@@ -17,20 +17,16 @@
 package uk.gov.hmrc.cataloguefrontend.events
 
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor.{ActorSystem, Cancellable}
-import org.joda.time.Duration
 import play.Logger
-import play.inject.ApplicationLifecycle
 import play.libs.Akka
 import play.modules.reactivemongo.MongoDbConnection
 import uk.gov.hmrc.cataloguefrontend.CatalogueController
+import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.TeamMember
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
+import scala.concurrent.duration.{FiniteDuration, _}
 
 
 
@@ -43,11 +39,12 @@ trait DefaultSchedulerDependencies extends MongoDbConnection  {
 
 abstract class Scheduler {
   def akkaSystem: ActorSystem
+  def readModelService: ReadModelService
 
-  def updateEventsReadModel: Unit = CatalogueController.readModelService.refreshEventsCache
-  def updateUmpCacheReadModel: Unit = CatalogueController.readModelService.refreshUmpCache
+  def updateEventsReadModel: Future[Map[String, String]] = readModelService.refreshEventsCache
+  def updateUmpCacheReadModel: Future[Seq[TeamMember]] = readModelService.refreshUmpCache
 
-  def startUpdating(interval: FiniteDuration): Cancellable = {
+  def startUpdatingEventsReadModel(interval: FiniteDuration): Cancellable = {
     Logger.info(s"Initialising Event read model update every $interval")
 
     val scheduler = akkaSystem.scheduler.schedule(100 milliseconds, interval) {
@@ -56,7 +53,8 @@ abstract class Scheduler {
 
     scheduler
   }
-  def startUpdatingUmp(interval: FiniteDuration): Cancellable = {
+
+  def startUpdatingUmpCacheReadModel(interval: FiniteDuration): Cancellable = {
     Logger.info(s"Initialising UMP cache read model update every $interval")
 
     val scheduler = akkaSystem.scheduler.schedule(100 milliseconds, interval) {
@@ -69,5 +67,7 @@ abstract class Scheduler {
 }
 
 
-object UpdateScheduler extends Scheduler with DefaultSchedulerDependencies
+object UpdateScheduler extends Scheduler with DefaultSchedulerDependencies {
+  override def readModelService: ReadModelService = CatalogueController.readModelService
+}
 
