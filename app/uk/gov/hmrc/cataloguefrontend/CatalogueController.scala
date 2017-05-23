@@ -92,7 +92,15 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
 
   def addServiceOwner = Action.async(parse.json) { implicit request =>
     val serviceOwnerUpdatedEventData = request.body.as[ServiceOwnerUpdatedEventData]
-    eventService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map(_ => Ok(Json.toJson(s"${serviceOwnerUpdatedEventData.name}")))
+    val userValid = readModelService.getAllUsers.map(_.displayName.getOrElse("")).contains(serviceOwnerUpdatedEventData.name)
+    userValid match {
+      case true =>
+        eventService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map { _ =>
+          Ok(Json.toJson(s"${serviceOwnerUpdatedEventData.name}"))
+        }
+      case false => Future(NotAcceptable(s"Invalid user: ${serviceOwnerUpdatedEventData.name}"))
+    }
+
   }
 
   def allTeams() = Action.async { implicit request =>
@@ -186,8 +194,18 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     })
   }
 
-  def allUsers = Action {
-    Ok(Json.toJson(readModelService.getAllUsers))
+//  case class AutocompleteUser(value: String, label: String)
+//  implicit val autocompleteUserFormtat = Json.format[AutocompleteUser]
+
+  def allUsers = Action { implicit request =>
+
+    val filterTerm = request.getQueryString("term").getOrElse("")
+    println(s"getting users: $filterTerm")
+    val filteredUsers: Seq[Option[String]] = readModelService.getAllUsers.map(_.displayName).filter(displayName => displayName.getOrElse("").toLowerCase.contains(filterTerm.toLowerCase))
+
+//    val things: Seq[AutocompleteUser] = filteredUsers.map(u => AutocompleteUser(u.get, u.get))
+
+    Ok(Json.toJson(filteredUsers))
   }
 
   def getRepos(data: DigitalService) = {
