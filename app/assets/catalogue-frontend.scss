@@ -6,6 +6,7 @@
 //components
 
 @import 'components/jquery-ui-autocomplete';
+@import 'components/editable-label';
 
 *,
 *:before,
@@ -231,14 +232,6 @@ section {
 
 .padding-reset-right {
   padding-right: 0;
-}
-
-.service-owner-view__service-owner {
-  padding: 7px 12px;
-  border: 1px solid transparent;
-  display: inline-block;
-  font-size: 14px;
-  line-height: 1.42857;
 }
 
 

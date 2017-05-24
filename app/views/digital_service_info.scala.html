@@ -45,42 +45,38 @@
 
                 <h3 class="board__heading">Details</h3>
                 <div class="board__body">
-                    <div>
-                        <ul class="list list--minimal">
-                            <li id="service_owner" class="col-lg-7">
-                                <span>
-                                    <label >Service Owner: </label>
-                                    <span id="service_owner_edit" style="display:None">
-                                        <div class="input-group">
-                                            <input type="text" id="service_owner_text" class="form-control" value="@{digitalServiceOwner.getOrElse("Not specified")}">
-                                            <div class="input-group-btn">
-                                                <button type="button" class="btn btn-primary" onclick="saveServiceOwner()">
-                                                    <span aria-hidden="true"></span> Save
-                                                </button>
-                                                <button type="button" class="btn" onclick="endServiceOwnerEditMode()">
-                                                    <span aria-hidden="true"></span> Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="service-owner-error" class="alert alert-danger" style="display: none"></div>
-                                    </span>
-                                    <span id="service_owner_view" class="service-owner-view" >
-                                        <div class="input-group">
-                                            <span id="service_owner_div" class="service-owner-view__service-owner">@{digitalServiceOwner.getOrElse("Not specified")}</span>
-                                            <div class="input-group-btn">
-                                                <button type="button" class="btn btn-primary" onclick="enterServiceOwnerEditMode()">
-                                                    <span aria-hidden="true"></span> Edit
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                    </span>
-                                </span>
-                            </li>
-                        </ul>
+                    <div class="col-lg-7 editable-label">
+                        <label >Service Owner: </label>
+                        <span id="service_owner_edit" style="display: None">
+                            <div class="input-group">
+                                <input type="text" id="service_owner_text" class="form-control" value="@{
+                                    digitalServiceOwner.getOrElse("Not specified")
+                                }">
+                                <div class="input-group-btn">
+                                    <button type="button" class="btn btn-primary" onclick="saveServiceOwner()">
+                                        <span aria-hidden="true"></span> Save
+                                    </button>
+                                    <button type="button" class="btn" onclick="endServiceOwnerEditMode()">
+                                        <span aria-hidden="true"></span> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="service-owner-error" class="alert alert-danger" style="display: none"></div>
+                        </span>
+                        <span id="service_owner_view" class="service-owner-view" >
+                            <div class="input-group">
+                                <span id="service_owner_div" class="form-control editable-label__field">@{
+                                    digitalServiceOwner.getOrElse("Not specified")
+                                }</span>
+                                <div class="input-group-btn">
+                                    <button type="button" class="btn btn-primary" onclick="enterServiceOwnerEditMode()">
+                                        <span aria-hidden="true"></span> Edit
+                                    </button>
+                                </div>
+                            </div>
+                        </span>
                     </div>
-
-                </div>
+                    </div>
             </div>
         </div>
     </div>
@@ -150,6 +146,7 @@
 //            debugger;
             var text = $('#service_owner_div').text();
             console.log(text);
+//            $('#service_owner_text').val(text).prop('readonly', true);
             $('#service_owner_text').val(text);
             $('#service_owner_edit').show();
             $('#service_owner_view').hide();
