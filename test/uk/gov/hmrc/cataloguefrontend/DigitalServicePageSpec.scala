@@ -65,6 +65,10 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
 
   val digitalServiceName = "digital-service-a"
 
+  val serviceOwnerName = "Mr. someone"
+  val mockedModelService = mock[ReadModelService]
+  when(mockedModelService.getDigitalServiceOwner(any())).thenReturn(Some(serviceOwnerName))
+
   "DigitalService page" should {
 
     "show a list of libraries, services, prototypes and repositories" in {
@@ -171,13 +175,12 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
 
     "show service owner" in {
 
-      val serviceOwnerName = "Mr. someone"
 
-      val mockedModelService = mock[ReadModelService]
+
       val mockedConnector = mock[TeamsAndRepositoriesConnector]
       when(mockedConnector.digitalServiceInfo(any())(any())).thenReturn(Future.successful(Left(HTTPError(999))))
 
-      when(mockedModelService.getDigitalServiceOwner(any())).thenReturn(Some(serviceOwnerName))
+
       //      val mockedEventService = mock[EventService]
 
       val catalogueController = new CatalogueController {
@@ -261,7 +264,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
-        override def readModelService: ReadModelService = ???
+        override def readModelService: ReadModelService = mockedModelService
 
         override def eventService: EventService = ???
       }
@@ -298,7 +301,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
-        override def readModelService: ReadModelService = ???
+        override def readModelService: ReadModelService = mockedModelService
 
         override def eventService: EventService = ???
       }
@@ -337,7 +340,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
-        override def readModelService: ReadModelService = ???
+        override def readModelService: ReadModelService = mockedModelService
 
         override def eventService: EventService = ???
       }
@@ -377,7 +380,7 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
         override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = teamsAndRepositoriesConnectorMock
         override def indicatorsConnector: IndicatorsConnector = ???
         override def deploymentsService: DeploymentsService = ???
-        override def readModelService: ReadModelService = ???
+        override def readModelService: ReadModelService = mockedModelService
 
         override def eventService: EventService = ???
       }
