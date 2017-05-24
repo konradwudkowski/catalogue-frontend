@@ -33,7 +33,7 @@ trait ReadModelService {
   private[events] var eventsCache = Map.empty[String, String]
   protected[events] var umpUsersCache = Seq.empty[TeamMember]
 
-  def getForDigitalService(digitalService: String): Option[String] = eventsCache.get(digitalService)
+  def getDigitalServiceOwner(digitalService: String): Option[String] = eventsCache.get(digitalService)
 
   def getAllUsers = umpUsersCache
 }

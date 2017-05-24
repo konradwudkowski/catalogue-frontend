@@ -24,7 +24,7 @@ import play.api.Play.current
 import play.api.data.Forms._
 import play.api.data.{Form, Mapping}
 import play.api.i18n.Messages.Implicits._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import play.modules.reactivemongo.MongoDbConnection
 import uk.gov.hmrc.cataloguefrontend.DisplayableTeamMembers.DisplayableTeamMember
@@ -35,7 +35,7 @@ import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 
 case class TeamActivityDates(firstActive: Option[LocalDateTime], lastActive: Option[LocalDateTime], firstServiceCreationDate: Option[LocalDateTime])
 
@@ -87,21 +87,25 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
   }
 
   def serviceOwner(digitalService: String) = Action {
-    readModelService.getForDigitalService(digitalService).fold(NotFound(s"owner for $digitalService not found"))(ds => Ok(Json.toJson(ds)))
+    readModelService.getDigitalServiceOwner(digitalService).fold(NotFound(Json.toJson(s"owner for $digitalService not found")))(ds => Ok(Json.toJson(ds)))
   }
 
-  def addServiceOwner = Action.async(parse.json) { implicit request =>
-    val serviceOwnerUpdatedEventData = request.body.as[ServiceOwnerUpdatedEventData]
-    val userValid = readModelService.getAllUsers.map(_.displayName.getOrElse("")).contains(serviceOwnerUpdatedEventData.name)
-    userValid match {
-      case true =>
+
+  def saveServiceOwner() = Action.async { implicit request =>
+    request.body.asJson.map{ payload =>
+      val serviceOwnerUpdatedEventData = payload.as[ServiceOwnerUpdatedEventData]
+      val userValid = readModelService.getAllUsers.map(_.displayName.getOrElse("")).contains(serviceOwnerUpdatedEventData.name)
+      if (userValid) {
         eventService.saveServiceOwnerUpdatedEvent(serviceOwnerUpdatedEventData).map { _ =>
           Ok(Json.toJson(s"${serviceOwnerUpdatedEventData.name}"))
         }
-      case false => Future(NotAcceptable(s"Invalid user: ${serviceOwnerUpdatedEventData.name}"))
-    }
+      } else {
+        Future(NotAcceptable(Json.toJson(s"Invalid user: ${serviceOwnerUpdatedEventData.name}")))
+      }
+    }.getOrElse(Future.successful(BadRequest(Json.toJson( s"""Unable to parse json: "${request.body.asText.getOrElse("No Text!")}""""))))
 
   }
+
 
   def allTeams() = Action.async { implicit request =>
     import SearchFiltering._
@@ -190,7 +194,7 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     } yield timestampedDigitalService.map(digitalService => DigitalServiceDetails(digitalServiceName, teamMembers, getRepos(digitalService)))
 
     digitalServiceDetails.value.map(d => {
-      Ok(digital_service_info(digitalServiceName, d, readModelService.getForDigitalService(digitalServiceName)))
+      Ok(digital_service_info(digitalServiceName, d, readModelService.getDigitalServiceOwner(digitalServiceName)))
     })
   }
 
