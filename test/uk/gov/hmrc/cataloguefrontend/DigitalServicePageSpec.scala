@@ -36,6 +36,7 @@ import play.api.mvc.{Action, AnyContent, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.cataloguefrontend.DateHelper._
 import uk.gov.hmrc.cataloguefrontend.JsonData._
+import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.HTTPError
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.TeamMember
 import uk.gov.hmrc.cataloguefrontend.events.{EventService, ReadModelService}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -154,6 +155,57 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
       response.body should include(ViewMessages.noRepoOfTypeForDigitalService("other"))
     }
 
+    "show 'Not specified' if service owner is not set" in {
+
+
+      val digitalServiceName = "digital-service-123"
+      val response = await(WS.url(s"http://localhost:$port/digital-service/${digitalServiceName}").get)
+
+      val document = asDocument(response.body)
+
+      val serviceOwnerO = document.select("#service_owner_edit_input").iterator().toList.headOption
+
+      serviceOwnerO.isDefined shouldBe true
+      serviceOwnerO.get.attr("value") shouldBe "Not specified"
+    }
+
+    "show service owner" in {
+
+      val serviceOwnerName = "Mr. someone"
+
+      val mockedModelService = mock[ReadModelService]
+      val mockedConnector = mock[TeamsAndRepositoriesConnector]
+      when(mockedConnector.digitalServiceInfo(any())(any())).thenReturn(Future.successful(Left(HTTPError(999))))
+
+      when(mockedModelService.getDigitalServiceOwner(any())).thenReturn(Some(serviceOwnerName))
+      //      val mockedEventService = mock[EventService]
+
+      val catalogueController = new CatalogueController {
+        override def userManagementConnector: UserManagementConnector = ???
+        override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = mockedConnector
+        override def indicatorsConnector: IndicatorsConnector = ???
+        override def deploymentsService: DeploymentsService = ???
+
+        override def readModelService: ReadModelService = mockedModelService
+        override def eventService: EventService = ??? //mockedEventService
+      }
+
+      val digitalServiceName = "digital-service-123"
+
+      val responseF = catalogueController.digitalService(digitalServiceName)(FakeRequest())
+
+      val response = responseF.futureValue
+
+      import play.api.test.Helpers._
+      val document = asDocument(contentAsString(response))
+
+      val serviceOwnerO = document.select("#service_owner_edit_input").iterator().toList.headOption
+
+      serviceOwnerO.isDefined shouldBe true
+      serviceOwnerO.get.attr("value") shouldBe serviceOwnerName
+    }
+
+
     "show team members for teams correctly" in {
       val team1 = "Team1"
       val team2 = "Team2"
@@ -196,7 +248,6 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
 
       verifyTeamMemberHrefLinks(document)
 
-      verifyTeamOwnerIndicatorLabel(document)
     }
 
     "show the right error message when unable to connect to teams-and-repositories" in {
@@ -373,12 +424,6 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
     Source.fromURL(getClass.getResource(jsonFilePath)).getLines().mkString("\n")
   }
 
-  def verifyTeamOwnerIndicatorLabel(document: Document): Unit = {
-    val serviceOwnersLiLabels = document.select("#team_members li .label-success")
-    serviceOwnersLiLabels.size() shouldBe 2
-    serviceOwnersLiLabels.iterator().toSeq.map(_.text()) shouldBe Seq("Service Owner", "Service Owner")
-  }
-
   def verifyTeamMemberHrefLinks(document: Document): Boolean = {
     val hrefs = document.select("#team_members [href]").iterator().toList
 
@@ -394,9 +439,9 @@ class DigitalServicePageSpec extends UnitSpec with BeforeAndAfter with OneServer
 
     teamMembersLiElements.length shouldBe 4
 
-    teamMembersLiElements(0).text() should include("Joe Black Service Owner")
+    teamMembersLiElements(0).text() should include("Joe Black")
     teamMembersLiElements(1).text() should include("James Roger")
-    teamMembersLiElements(2).text() should include("Casey Binge Service Owner")
+    teamMembersLiElements(2).text() should include("Casey Binge")
     teamMembersLiElements(3).text() should include("Marc Palazzo")
   }
 

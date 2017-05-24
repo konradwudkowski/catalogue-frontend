@@ -134,38 +134,8 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     }
   }
 
+
   def digitalService(digitalServiceName: String) = Action.async { implicit request =>
-    import cats.instances.future._
-
-    type TeamsAndRepoType[A] = Future[Either[TeamsAndRepositoriesError, A]]
-
-    val eventualDigitalServiceInfoF: TeamsAndRepoType[Timestamped[DigitalService]] =
-    teamsAndRepositoriesConnector.digitalServiceInfo(digitalServiceName)
-
-
-    val errorOrTeamNames: TeamsAndRepoType[Seq[String]] =
-    eventualDigitalServiceInfoF.map(_.right.map(_.data.repositories.flatMap(_.teamNames)).right.map(_.distinct))
-
-    val errorOrTeamMembersLookupF: Future[Either[TeamsAndRepositoriesError, Map[String, Either[UMPError, Seq[DisplayableTeamMember]]]]] = errorOrTeamNames.flatMap {
-      case Right(teamNames) =>
-        userManagementConnector
-          .getTeamMembersForTeams(teamNames)
-          .map(convertToDisplayableTeamMembers)
-          .map(Right(_))
-      case Left(connectorError) =>
-        Future.successful(Left(connectorError))
-    }
-
-
-    val digitalServiceDetails: EitherT[Future, TeamsAndRepositoriesError, Timestamped[DigitalServiceDetails]] = for {
-      timestampedDigitalService <- EitherT(eventualDigitalServiceInfoF)
-      teamMembers <- EitherT(errorOrTeamMembersLookupF)
-    } yield timestampedDigitalService.map(digitalService => DigitalServiceDetails(digitalServiceName, teamMembers, getRepos(digitalService)))
-
-    digitalServiceDetails.value.map(d => Ok(digital_service_info(digitalServiceName, d, None)))
-  }
-
-  def digitalServiceArmin(digitalServiceName: String) = Action.async { implicit request =>
     import cats.instances.future._
 
     type TeamsAndRepoType[A] = Future[Either[TeamsAndRepositoriesError, A]]
@@ -198,16 +168,11 @@ trait CatalogueController extends FrontendController with UserManagementPortalLi
     })
   }
 
-//  case class AutocompleteUser(value: String, label: String)
-//  implicit val autocompleteUserFormtat = Json.format[AutocompleteUser]
-
   def allUsers = Action { implicit request =>
 
     val filterTerm = request.getQueryString("term").getOrElse("")
     println(s"getting users: $filterTerm")
     val filteredUsers: Seq[Option[String]] = readModelService.getAllUsers.map(_.displayName).filter(displayName => displayName.getOrElse("").toLowerCase.contains(filterTerm.toLowerCase))
-
-//    val things: Seq[AutocompleteUser] = filteredUsers.map(u => AutocompleteUser(u.get, u.get))
 
     Ok(Json.toJson(filteredUsers))
   }
