@@ -26,10 +26,12 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Writes
 import play.api.test.FakeHeaders
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, HTTPError, NoData, TeamMember, UMPError}
 import uk.gov.hmrc.play.audit.HeaderCarrierConverter
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet}
+import uk.gov.hmrc.play.http.hooks.HttpHook
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, HttpResponse}
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -89,17 +91,14 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
     }
 
     it("api returns a connection error") {
-
-      val mockedHttpGet = mock[HttpGet]
+      val expectedException = new RuntimeException("some error")
 
       val userManagementConnector = new UserManagementConnector {
         override val userManagementBaseUrl = "http://some.non.existing.url.com"
-        override val http = mockedHttpGet
+        override val http = mockedHttpGet(expectedException)
       }
 
-      val expectedException = new RuntimeException("some error")
-
-      when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(expectedException))
+//      when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(expectedException))
 
       val error: UMPError = userManagementConnector.getTeamMembersFromUMP("teamName")(HeaderCarrierConverter.fromHeadersAndSession(FakeHeaders())).futureValue.left.value
       error should ===(ConnectionError(expectedException))
@@ -150,16 +149,16 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
     it("api returns a connection error for team details") {
 
-      val mockedHttpGet = mock[HttpGet]
+      val expectedException = new RuntimeException("some error")
+
+      
 
       val userManagementConnector = new UserManagementConnector {
         override val userManagementBaseUrl = "http://some.non.existing.url.com"
-        override val http = mockedHttpGet
+        override val http = mockedHttpGet(expectedException)
       }
 
-      val expectedException = new RuntimeException("some error")
-
-      when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(expectedException))
+//      when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(expectedException))
 
       val error: UMPError = userManagementConnector.getTeamDetails("TEAM-A")(HeaderCarrierConverter.fromHeadersAndSession(FakeHeaders())).futureValue.left.value
       error should ===(ConnectionError(expectedException))
@@ -230,17 +229,15 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
 
       it("should return a connection error for calls which fail with an exception") {
 
-        val mockedHttpGet = mock[HttpGet]
+        val exception = new RuntimeException("Boooom!")
 
         val userManagementConnector = new UserManagementConnector {
           override val userManagementBaseUrl = "http://some.non.existing.url.com"
-          override val http = mockedHttpGet
+          override val http = mockedHttpGet(exception)
         }
 
         val teamNames = Seq("Team1", "Team2")
-
-        val exception = new RuntimeException("Boooom!")
-        when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(exception))
+//        when(mockedHttpGet.GET(anyString())(any(), any())).thenReturn(Future.failed(exception))
 
         val teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]] = userManagementConnector.getTeamMembersForTeams(teamNames)(HeaderCarrierConverter.fromHeadersAndSession(FakeHeaders())).futureValue
 
@@ -422,4 +419,25 @@ class UserManagementConnectorSpec extends FunSpec with Matchers with TypeChecked
       requestHeaders = Map("Token" -> "None", "requester" -> "None"),
       willRespondWith = (httpCode, json))
   }
+
+  def mockedHttpGet(expectedException: Exception) = new HttpGet {
+    override val hooks: Seq[HttpHook] = Nil
+
+    override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = Future.failed(expectedException)
+
+    override def doDelete(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
+
+    override def doPatch[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = ???
+
+    override def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = ???
+
+    override def doPost[A](url: String, body: A, headers: Seq[(String, String)])(implicit wts: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = ???
+
+    override def doPostString(url: String, body: String, headers: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
+
+    override def doEmptyPost[A](url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
+
+    override def doFormPost(url: String, body: Map[String, Seq[String]])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
+  }
+
 }
