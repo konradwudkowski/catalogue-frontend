@@ -51,6 +51,7 @@ import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{ConnectionError, g
 
 import scala.io.Source
 import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.http.ws.WSExtensions._
 
 
 trait UserManagementConnector extends UserManagementPortalLink {

@@ -16,10 +16,14 @@
 
 package uk.gov.hmrc.cataloguefrontend.config
 
-import uk.gov.hmrc.play.config.{AppName, RunMode}
-import uk.gov.hmrc.play.http.hooks.HttpHook
+import uk.gov.hmrc.play.config.AppName
+import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.http.hooks.{HttpHook, HttpHooks}
 import uk.gov.hmrc.play.http.ws._
 
-object WSHttp extends WSGet with WSPut with WSPost with WSDelete with WSPatch with AppName {
+object WSHttp extends WSGet with HttpGet with WSPut with HttpPut with WSPost with HttpPost with WSDelete with HttpDelete with WSPatch with HttpPatch with HttpHooks with AppName {
+
   override val hooks: Seq[HttpHook] = NoneRequired
 }
+
+

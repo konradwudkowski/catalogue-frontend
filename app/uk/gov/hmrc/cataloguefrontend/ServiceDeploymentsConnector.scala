@@ -44,6 +44,7 @@ import uk.gov.hmrc.play.http._
 
 import scala.concurrent.Future
 import scala.util.{Success, Try}
+import uk.gov.hmrc.play.http.ws.WSExtensions._
 
 case class Deployer(name : String, deploymentDate: LocalDateTime)
 

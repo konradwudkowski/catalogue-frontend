@@ -41,6 +41,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext.fromLoggingDetai
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, HttpReads, HttpResponse}
 
 import scala.concurrent.Future
+import uk.gov.hmrc.play.http.ws.WSExtensions._
 
 
 case class MedianDataPoint(median: Int)
@@ -79,6 +80,7 @@ trait IndicatorsConnector extends ServicesConfig {
   implicit val deploymentsMetricResultFormats = Json.reads[DeploymentsMetricResult]
   implicit val medianDataPointFormats = Json.reads[MedianDataPoint]
   implicit val jobExecutionTimeDataPointFormats = Json.reads[JobMetricDataPoint]
+
 
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response

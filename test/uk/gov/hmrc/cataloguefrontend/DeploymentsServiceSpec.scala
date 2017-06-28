@@ -26,6 +26,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{EitherValues, Matchers, OptionValues, WordSpec}
 import play.api.test.FakeHeaders
+import uk.gov.hmrc.play.audit.HeaderCarrierConverter
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -37,7 +38,7 @@ class DeploymentsServiceSpec extends WordSpec with Matchers with MockitoSugar wi
 
   "Deployments service" should {
 
-    implicit val hc = HeaderCarrier.fromHeadersAndSession(FakeHeaders())
+    implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(FakeHeaders())
 
     "Combine release and team information given an empty filter" in {
       val deploymentsConnector = mock[ServiceDeploymentsConnector]
