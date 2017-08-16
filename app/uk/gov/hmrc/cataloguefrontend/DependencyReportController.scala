@@ -23,6 +23,7 @@ import play.api.Play.current
 import play.api.data.Forms._
 import play.api.data.{Form, Mapping}
 import play.api.i18n.Messages.Implicits._
+import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import play.modules.reactivemongo.MongoDbConnection
@@ -33,7 +34,8 @@ import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{TeamMember, UMPErr
 import uk.gov.hmrc.cataloguefrontend.connector.model.{Dependencies, Version}
 import uk.gov.hmrc.cataloguefrontend.connector.{DeploymentIndicators, IndicatorsConnector, ServiceDependenciesConnector}
 import uk.gov.hmrc.cataloguefrontend.events._
-import uk.gov.hmrc.cataloguefrontend.service.DeploymentsService
+import uk.gov.hmrc.cataloguefrontend.report.{DependencyReport, DependencyReportRepository, MongoDependencyReportRepository}
+import uk.gov.hmrc.cataloguefrontend.service.{Delay, DeploymentsService}
 import uk.gov.hmrc.play.frontend.controller.FrontendController
 import views.html._
 
@@ -53,6 +55,7 @@ object DependencyReportController extends DependencyReportController with MongoD
   lazy override val deploymentsService: DeploymentsService = new DeploymentsService(ServiceDeploymentsConnector, TeamsAndRepositoriesConnector)
 
   lazy override val eventService = new DefaultEventService(new MongoEventRepository(db))
+  lazy override val dependencyReportRepository = new MongoDependencyReportRepository(db)
 
   lazy override val readModelService = new DefaultReadModelService(eventService, UserManagementConnector)
 
@@ -82,74 +85,130 @@ trait DependencyReportController extends FrontendController with UserManagementP
 
   def eventService: EventService
 
+  def dependencyReportRepository: DependencyReportRepository
+
   def readModelService: ReadModelService
 
 
-  case class DependencyReport(repository: String,               // teamsAndRepositoriesConnector.allRepositories
-                              repoType: String,                 // teamsAndRepositoriesConnector.allRepositories
-                              team: String,                     // findTeamNames(_,_)
-                              digitalService: String,           // findDigitalServiceName
-                              dependencyName: String,           //
-                              dependencyType: String,           //
-                              currentVersion: String,          //
-                              latestVersion: String)                   //
-
   implicit val drFormat = Json.format[DependencyReport]
 
-  def dependencyReport() = Action.async { implicit request =>
+  def getDependencyReport = Action.async {
+    dependencyReportRepository.getAllDependencyReports.map(d => Ok(Json.toJson(d)))
+  }
 
-
+  def dependencyReport() = Action { implicit request =>
+    dependencyReportRepository.clearAllData
     type RepoName = String
 
-    val allTeamsF = teamsAndRepositoriesConnector.allTeams.map(_.data).flatMap(teams => Future.sequence(teams.map(team => teamsAndRepositoriesConnector.teamInfo(team.name).map(_.map(_.data))))).map(_.flatten)
-    val digitalServicesF = teamsAndRepositoriesConnector.allDigitalServices.map(_.data).flatMap { digitalServices =>
+//    def getDependenciesWithDelay(repo: RepositoryDisplayDetails, delay: Double) = {
+//      Delay.delay(delay) {
+//        serviceDependencyConnector.getDependencies(repo.name)
+//      }
+//    }
+
+
+    //!@ remove this
+    val DEBUG_COUNT = 10
+//    val DEBUG_COUNT_2 = 1000
+
+    val allTeamsF = teamsAndRepositoriesConnector.allTeams.map(_.data.take(DEBUG_COUNT)).flatMap(teams => Future.sequence(teams.map(team => teamsAndRepositoriesConnector.teamInfo(team.name).map(_.map(_.data))))).map(_.flatten)
+    val digitalServicesF = teamsAndRepositoriesConnector.allDigitalServices.map(_.data.take(DEBUG_COUNT)).flatMap { digitalServices =>
       Future.sequence {
         digitalServices.map(teamsAndRepositoriesConnector.digitalServiceInfo)
       }.map(errorsOrDigitalServices => errorsOrDigitalServices.map(errorOrDigitalService => errorOrDigitalService.right.map(_.data)))
     }
 
+    import scala.concurrent.duration._
 
-    val x: Future[Seq[DependencyReport]] = for {
-      allRepos: Seq[RepositoryDisplayDetails] <- teamsAndRepositoriesConnector.allRepositories.map(_.data)
-      dependencies <- Future.sequence(allRepos.map(repo => serviceDependencyConnector.getDependencies(repo.name))).map(_.flatten)
+
+    val allReposF = teamsAndRepositoriesConnector.allRepositories.map(_.data)
+    for {
       allTeams <- allTeamsF
       digitalServices <- digitalServicesF
     } yield {
-      dependencies.flatMap { (dependencies: Dependencies) =>
-        val repoName = dependencies.repositoryName
-        
-        dependencies.libraryDependenciesState.map(d =>
-          DependencyReport(repoName,
-            getRepositoryType(repoName, allRepos),
-            findTeamNames(repoName, allTeams).mkString(";"),
-            findDigitalServiceName(repoName, digitalServices),
-            d.libraryName,
-            "library",
-            d.currentVersion.toString,
-            d.latestVersion.getOrElse("Unknown").toString
-          ))
+      allReposF.map { allRepos =>
+        allRepos.map(repo =>  (serviceDependencyConnector.getDependencies(repo.name)))
+          .map(depsFO => depsFO.map(_.map { dependencies =>
+            val repoName = dependencies.repositoryName
+            dependencies.libraryDependenciesState.map { d =>
 
+              val report = DependencyReport(repoName,
+                getRepositoryType(repoName, allRepos),
+                findTeamNames(repoName, allTeams).mkString(";"),
+                findDigitalServiceName(repoName, digitalServices),
+                d.libraryName,
+                "library",
+                d.currentVersion.toString,
+                d.latestVersion.getOrElse("Unknown").toString
+              )
+              println(s"Writing to Mongo:$report")
+              dependencyReportRepository.add(report)
+              report
+            }
+          }))
       }
 
     }
 
+    Ok("Done")
+  }
 
 
-
-//    val x: Future[Seq[Map[String, Seq[String]]]] = for {
-//      teamsInfo: Seq[Team] <- teamsInfoF
-//      digitalServices: Seq[Either[TeamsAndRepositoriesError, DigitalService]] <- digitalServicesF
-//    } yield {
-//      val teamsWithRepos = teamsInfo.filter(_.repos.isDefined)
-//      val seq1 = teamsWithRepos.map(team => team.repos.getOrElse(Map.empty))
-//      println(seq1)
+//  def dependencyReportOrg() = Action.async { implicit request =>
 //
-//      seq1
+//
+//
+//    type RepoName = String
+//
+//    val allTeamsF = teamsAndRepositoriesConnector.allTeams.map(_.data).flatMap(teams => Future.sequence(teams.map(team => teamsAndRepositoriesConnector.teamInfo(team.name).map(_.map(_.data))))).map(_.flatten)
+//    val digitalServicesF = teamsAndRepositoriesConnector.allDigitalServices.map(_.data).flatMap { digitalServices =>
+//      Future.sequence {
+//        digitalServices.map(teamsAndRepositoriesConnector.digitalServiceInfo)
+//      }.map(errorsOrDigitalServices => errorsOrDigitalServices.map(errorOrDigitalService => errorOrDigitalService.right.map(_.data)))
+//    }
+//
+//
+//    val x: Future[Seq[DependencyReport]] = for {
+//      allRepos: Seq[RepositoryDisplayDetails] <- teamsAndRepositoriesConnector.allRepositories.map(_.data)
+//      dependencies <- Future.sequence(allRepos.map(repo => serviceDependencyConnector.getDependencies(repo.name))).map(_.flatten)
+//      allTeams <- allTeamsF
+//      digitalServices <- digitalServicesF
+//    } yield {
+//      dependencies.flatMap { (dependencies: Dependencies) =>
+//        val repoName = dependencies.repositoryName
+//
+//        dependencies.libraryDependenciesState.map(d =>
+//          DependencyReport(repoName,
+//            getRepositoryType(repoName, allRepos),
+//            findTeamNames(repoName, allTeams).mkString(";"),
+//            findDigitalServiceName(repoName, digitalServices),
+//            d.libraryName,
+//            "library",
+//            d.currentVersion.toString,
+//            d.latestVersion.getOrElse("Unknown").toString
+//          ))
+//
+//      }
 //
 //    }
-
-    x.map(r => Ok(Json.toJson(r)))
-  }
+//
+//
+//
+//
+////    val x: Future[Seq[Map[String, Seq[String]]]] = for {
+////      teamsInfo: Seq[Team] <- teamsInfoF
+////      digitalServices: Seq[Either[TeamsAndRepositoriesError, DigitalService]] <- digitalServicesF
+////    } yield {
+////      val teamsWithRepos = teamsInfo.filter(_.repos.isDefined)
+////      val seq1 = teamsWithRepos.map(team => team.repos.getOrElse(Map.empty))
+////      println(seq1)
+////
+////      seq1
+////
+////    }
+//
+//    x.map(r => Ok(Json.toJson(r)))
+//  }
 
   def getRepositoryType(repositoryName:String, allRepos: Seq[RepositoryDisplayDetails]): String =
     allRepos.find(r => r.name == repositoryName).map(_.repoType).getOrElse("Unknown").toString
