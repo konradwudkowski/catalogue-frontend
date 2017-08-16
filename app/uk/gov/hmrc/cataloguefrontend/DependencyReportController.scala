@@ -102,22 +102,22 @@ trait DependencyReportController extends FrontendController with UserManagementP
     type RepoName = String
 
     val allTeamsF = teamsAndRepositoriesConnector.allTeams.map(_.data).flatMap(teams => Future.sequence(teams.map(team => teamsAndRepositoriesConnector.teamInfo(team.name).map(_.map(_.data))))).map(_.flatten)
+    val digitalServicesF = teamsAndRepositoriesConnector.allDigitalServices.map(_.data).flatMap { digitalServices =>
+      Future.sequence {
+        digitalServices.map(teamsAndRepositoriesConnector.digitalServiceInfo)
+      }.map(errorsOrDigitalServices => errorsOrDigitalServices.map(errorOrDigitalService => errorOrDigitalService.right.map(_.data)))
+    }
+
 
     val x: Future[Seq[DependencyReport]] = for {
-      allRepos: Seq[RepositoryDisplayDetails] <- teamsAndRepositoriesConnector.allRepositories.map(_.data).map(Random.shuffle(_)).map(_.take(10))
+      allRepos: Seq[RepositoryDisplayDetails] <- teamsAndRepositoriesConnector.allRepositories.map(_.data)
       dependencies <- Future.sequence(allRepos.map(repo => serviceDependencyConnector.getDependencies(repo.name))).map(_.flatten)
       allTeams <- allTeamsF
-      digitalServices <- teamsAndRepositoriesConnector.allDigitalServices.map(_.data).flatMap { digitalServices =>
-        Future.sequence {
-          digitalServices.map(teamsAndRepositoriesConnector.digitalServiceInfo)
-        }.map(errorsOrDigitalServices => errorsOrDigitalServices.map(errorOrDigitalService => errorOrDigitalService.right.map(_.data)))
-      }
+      digitalServices <- digitalServicesF
     } yield {
       dependencies.flatMap { (dependencies: Dependencies) =>
         val repoName = dependencies.repositoryName
-
-        val teamNames = findTeamNames(repoName, allTeams)
-        val digitalServiceName = findDigitalServiceName(repoName, digitalServices)
+        
         dependencies.libraryDependenciesState.map(d =>
           DependencyReport(repoName,
             getRepositoryType(repoName, allRepos),
