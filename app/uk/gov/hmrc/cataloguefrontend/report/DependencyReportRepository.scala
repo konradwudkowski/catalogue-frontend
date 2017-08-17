@@ -36,6 +36,7 @@ case class DependencyReport(repository: String,               // teamsAndReposit
                             dependencyType: String,           //
                             currentVersion: String,          //
                             latestVersion: String,
+                            colour: String,
                             timestamp: Long = new Date().getTime)
 
 object DependencyReport {
