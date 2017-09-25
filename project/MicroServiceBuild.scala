@@ -12,7 +12,7 @@ private object AppDependencies {
   import play.sbt.PlayImport._
 
 
-  private val frontendBootstrapVersion = "8.5.0"
+  private val frontendBootstrapVersion = "0.8.0"
   private val urlBuilderVersion = "1.1.0"
   private val catsVersion = "0.9.0"
   private val playReactivemongoVersion = "5.2.0"
@@ -21,7 +21,8 @@ private object AppDependencies {
 
 
   val compile = Seq(
-    "uk.gov.hmrc" %% "frontend-bootstrap" % frontendBootstrapVersion,
+    "uk.gov.hmrc" %% "bootstrap-play-25" % frontendBootstrapVersion,
+    "uk.gov.hmrc" %% "play-config" % "4.3.0",
     "uk.gov.hmrc" %% "url-builder" % urlBuilderVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "org.typelevel" %% "cats-core" % catsVersion,

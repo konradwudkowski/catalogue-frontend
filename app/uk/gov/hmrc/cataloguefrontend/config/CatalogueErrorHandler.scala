@@ -16,14 +16,20 @@
 
 package uk.gov.hmrc.cataloguefrontend.config
 
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.hooks.HttpHooks
-import uk.gov.hmrc.play.config.AppName
-import uk.gov.hmrc.play.http.ws._
+import javax.inject.{Inject, Singleton}
 
-trait Hooks extends HttpHooks {
-  override val hooks = NoneRequired
+import play.api.Configuration
+import play.api.i18n.MessagesApi
+import play.api.mvc.Request
+import uk.gov.hmrc.play.bootstrap.http.FrontendErrorHandler
+
+
+@Singleton
+class CatalogueErrorHandler @Inject()(
+                                       val messagesApi: MessagesApi,
+                                       val configuration: Configuration
+                                     ) extends FrontendErrorHandler {
+
+  override def standardErrorTemplate(pageTitle: String, heading: String, message: String)(implicit request: Request[_]) =
+    views.html.error_template(pageTitle, heading, message)
 }
-
-trait WSHttp extends HttpGet with WSGet with HttpPut with WSPut with HttpPost with WSPost with HttpDelete with WSDelete with Hooks with AppName
-object WSHttp extends WSHttp

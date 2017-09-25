@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cataloguefrontend.events
 
 
+import javax.inject.Inject
+
 import akka.actor.{ActorSystem, Cancellable}
 import play.Logger
-import play.libs.Akka
-import play.modules.reactivemongo.MongoDbConnection
 import uk.gov.hmrc.cataloguefrontend.CatalogueController
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.TeamMember
 
@@ -29,17 +29,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{FiniteDuration, _}
 
 
-
-
-trait DefaultSchedulerDependencies extends MongoDbConnection  {
-
-  val akkaSystem = Akka.system()
-
-}
-
-abstract class Scheduler {
-  def akkaSystem: ActorSystem
-  def readModelService: ReadModelService
+class Scheduler @Inject()(akkaSystem: ActorSystem) {
+  def readModelService: ReadModelService = CatalogueController.readModelService
 
   def updateEventsReadModel: Future[Map[String, String]] = readModelService.refreshEventsCache
   def updateUmpCacheReadModel: Future[Seq[TeamMember]] = readModelService.refreshUmpCache
@@ -65,9 +56,3 @@ abstract class Scheduler {
   }
 
 }
-
-
-object UpdateScheduler extends Scheduler with DefaultSchedulerDependencies {
-  override def readModelService: ReadModelService = CatalogueController.readModelService
-}
-

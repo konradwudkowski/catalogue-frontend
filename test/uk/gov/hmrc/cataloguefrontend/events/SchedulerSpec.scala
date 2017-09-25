@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.cataloguefrontend.events
 
+import akka.actor.ActorSystem
 import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
@@ -29,7 +30,7 @@ class SchedulerSpec extends FunSpec with Matchers with MockitoSugar with OneAppP
   describe("event read model update") {
     it("should be scheduled for specified intervals") {
       val modelService = mock[ReadModelService]
-      val scheduler = new Scheduler with DefaultSchedulerDependencies {
+      val scheduler = new Scheduler(ActorSystem("test")) {
         override def readModelService: ReadModelService = {
           modelService
         }
@@ -45,7 +46,7 @@ class SchedulerSpec extends FunSpec with Matchers with MockitoSugar with OneAppP
   describe("ump cache read model update") {
     it("should be scheduled for specified intervals") {
       val modelService = mock[ReadModelService]
-      val scheduler = new Scheduler with DefaultSchedulerDependencies {
+      val scheduler = new Scheduler(ActorSystem("test")) {
         override def readModelService: ReadModelService = {
           modelService
         }
