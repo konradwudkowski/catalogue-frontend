@@ -17,27 +17,30 @@
 package uk.gov.hmrc.cataloguefrontend
 
 import java.util.Date
+import javax.inject.{Inject, Singleton}
 
 import akka.stream.scaladsl._
 import org.apache.commons.io.IOUtils
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
 import play.api.mvc._
+import play.api.{Configuration, Environment => PlayEnvironment}
 import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
 import uk.gov.hmrc.cataloguefrontend.connector.ServiceDependenciesConnector
 import uk.gov.hmrc.cataloguefrontend.connector.model.{Dependencies, Version}
-import uk.gov.hmrc.play.frontend.controller.FrontendController
+import uk.gov.hmrc.play.bootstrap.controller.FrontendController
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-object DependencyReportController extends DependencyReportController  {
-
-  override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = TeamsAndRepositoriesConnector
-
-  lazy override val serviceDependencyConnector: ServiceDependenciesConnector = ServiceDependenciesConnector
-}
+//object DependencyReportController extends DependencyReportController  {
+//
+//  override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = TeamsAndRepositoriesConnector
+//
+//  lazy override val serviceDependencyConnector: ServiceDependenciesConnector = ServiceDependenciesConnector
+//}
 
 case class DependencyReport(repository: String,
 //                            repoType: String,
@@ -50,20 +53,24 @@ case class DependencyReport(repository: String,
                             colour: String,
                             timestamp: Long = new Date().getTime)
 
-trait DependencyReportController extends FrontendController with UserManagementPortalLink {
+@Singleton
+class DependencyReportController @Inject()(http : HttpClient,
+                                           override val runModeConfiguration:Configuration,
+                                           environment : PlayEnvironment,
+                                           teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector,
+                                           serviceDependencyConnector: ServiceDependenciesConnector
+                                          ) extends FrontendController with UserManagementPortalLink {
 
 
-  def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector
-
-  def serviceDependencyConnector: ServiceDependenciesConnector
+  override protected def mode = environment.mode
 
 
   implicit val drFormat = Json.format[DependencyReport]
 
 
   private def getDependencies(digitalServices: Seq[Either[TeamsAndRepositoriesError, DigitalService]],
-                                  allTeams: Seq[Team],
-                                  dependencies: Dependencies) = {
+                              allTeams: Seq[Team],
+                              dependencies: Dependencies) = {
 
     val repoName = dependencies.repositoryName
 

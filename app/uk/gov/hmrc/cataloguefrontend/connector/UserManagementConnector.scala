@@ -33,24 +33,44 @@ package uk.gov.hmrc.cataloguefrontend
  */
 
 
-import play.api.Logger
+import javax.inject.{Inject, Singleton}
+
 import play.api.libs.json._
+import play.api.{Configuration, Logger, Environment => PlayEnvironment}
 import uk.gov.hmrc.cataloguefrontend.FutureHelpers.withTimerAndCounter
-import uk.gov.hmrc.cataloguefrontend.config.WSHttp
-import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.io.Source
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.http.{HeaderCarrier, HttpGet, HttpReads, HttpResponse}
+import scala.concurrent.Future
 
 
-trait UserManagementConnector extends UserManagementPortalLink {
-  val http: HttpGet
+@Singleton
+case class UserManagementConnector @Inject()(http : HttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends UserManagementPortalLink {
 
   import UserManagementConnector._
+
+//  case class TeamMember(displayName: Option[String],
+//                        familyName: Option[String],
+//                        givenName: Option[String],
+//                        primaryEmail: Option[String],
+//                        serviceOwnerFor: Option[Seq[String]],
+//                        username: Option[String]) {
+//
+//    def getUmpLink(umpProfileBaseUrl: String) =
+//      this.username.map(x => s"${umpProfileBaseUrl.appendSlash}$x").getOrElse("USERNAME NOT PROVIDED")
+//
+//    def getDisplayName = this.displayName.getOrElse("DISPLAY NAME NOT PROVIDED")
+//  }
+
+//  case class TeamDetails(description: Option[String],
+//                         location: Option[String],
+//                         organisation: Option[String],
+//                         documentation: Option[String],
+//                         slack: Option[String],
+//                         team: String)
+
 
   implicit val teamMemberFormat = Json.format[TeamMember]
   implicit val teamDetailsReads = Json.reads[TeamDetails]
@@ -75,11 +95,11 @@ trait UserManagementConnector extends UserManagementPortalLink {
 
     def isHttpCodeFailure: Option[(Either[UMPError, _]) => Boolean] =
       Some { errorOrMembers: Either[UMPError, _] =>
-      errorOrMembers match {
-        case Left(HTTPError(code)) if code != 200 => true
-        case _ => false
+        errorOrMembers match {
+          case Left(HTTPError(code)) if code != 200 => true
+          case _ => false
+        }
       }
-    }
 
     val eventualConnectorErrorOrTeamMembers = http.GET[HttpResponse](url)(httpReads, newHeaderCarrier, fromLoggingDetails(newHeaderCarrier)).map { response =>
       response.status match {
@@ -88,31 +108,13 @@ trait UserManagementConnector extends UserManagementPortalLink {
       }
     }
 
-    withTimerAndCounter("ump") (eventualConnectorErrorOrTeamMembers, isHttpCodeFailure)
+    withTimerAndCounter("ump")(eventualConnectorErrorOrTeamMembers, isHttpCodeFailure)
       .recover {
-      case ex =>
-        Logger.error(s"An error occurred when connecting to $userManagementBaseUrl: ${ex.getMessage}", ex)
-        Left(ConnectionError(ex))
-    }
+        case ex =>
+          Logger.error(s"An error occurred when connecting to $userManagementBaseUrl: ${ex.getMessage}", ex)
+          Left(ConnectionError(ex))
+      }
   }
-
-
-//  def getAllUsersFromUMP_fromfile(): Future[Either[UMPError, Seq[TeamMember]]] = {
-//
-//    val stream: InputStream = getClass.getResourceAsStream("/ump/all-users.json")
-//
-//    val fileContents = Source.fromInputStream(stream).getLines().mkString("\n")
-////    println(fileContents)
-//
-//    val teamMembers = (Json.parse(fileContents) \ "users").validate[Seq[TeamMember]]
-//
-//    teamMembers match {
-//      case JsSuccess(tms, _) =>
-//        println(tms.size)
-//        Future.successful(Right(tms))
-//      case JsError(errors) => Future.successful(Left(ConnectionError(new RuntimeException(errors.toString()))))
-//    }
-//  }
 
 
   def getAllUsersFromUMP(): Future[Either[UMPError, Seq[TeamMember]]] = {
@@ -136,7 +138,7 @@ trait UserManagementConnector extends UserManagementPortalLink {
       }
     }
 
-    withTimerAndCounter("ump") (eventualErrorOrTeamMembers, isHttpCodeFailure)
+    withTimerAndCounter("ump")(eventualErrorOrTeamMembers, isHttpCodeFailure)
       .recover {
         case ex =>
           Logger.error(s"An error occurred when connecting to $url: ${ex.getMessage}", ex)
@@ -145,11 +147,9 @@ trait UserManagementConnector extends UserManagementPortalLink {
   }
 
 
-
-
   def getTeamDetails(team: String)(implicit hc: HeaderCarrier): Future[Either[UMPError, TeamDetails]] = {
     val newHeaderCarrier = hc.withExtraHeaders("requester" -> "None", "Token" -> "None")
-//    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team"
+    //    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team"
     val url = s"$userManagementBaseUrl/v2/organisations/teams/$team"
     withTimerAndCounter("ump-teamdetails") {
       http.GET[HttpResponse](url)(httpReads, newHeaderCarrier, fromLoggingDetails(newHeaderCarrier)).map { response =>
@@ -169,10 +169,10 @@ trait UserManagementConnector extends UserManagementPortalLink {
 
   def extractData[T](team: String, response: HttpResponse)(implicit rd: Reads[T]): Either[UMPError, T] = {
 
-   Option(response.json).flatMap{ js => js.asOpt[T] } match {
-     case Some(x) => Right(x)
-     case _ => Left(NoData(umpMyTeamsPageUrl(team)))
-   }
+    Option(response.json).flatMap { js => js.asOpt[T] } match {
+      case Some(x) => Right(x)
+      case _ => Left(NoData(umpMyTeamsPageUrl(team)))
+    }
   }
 
   private def extractMembers(team: String, response: HttpResponse): Either[UMPError, Seq[TeamMember]] = {
@@ -193,13 +193,11 @@ trait UserManagementConnector extends UserManagementPortalLink {
       .map(js => js.as[Seq[TeamMember]])
       .getOrElse(throw new RuntimeException(s"Unable to parse or extract UMP users: ${response.json}"))
 
-
+  override protected def mode = environment.mode
 
 }
 
-object UserManagementConnector extends UserManagementConnector {
-  override val http = WSHttp
-
+object UserManagementConnector {
   sealed trait UMPError
 
   case class NoData(linkToRectify: String) extends UMPError
@@ -209,6 +207,8 @@ object UserManagementConnector extends UserManagementConnector {
   case class ConnectionError(exception: Throwable) extends UMPError {
     override def toString: String = exception.getMessage
   }
+
+
 
 
   case class TeamMember(displayName: Option[String],
@@ -223,6 +223,8 @@ object UserManagementConnector extends UserManagementConnector {
 
     def getDisplayName = this.displayName.getOrElse("DISPLAY NAME NOT PROVIDED")
   }
+
+  
 
   case class TeamDetails(description: Option[String],
                          location: Option[String],
