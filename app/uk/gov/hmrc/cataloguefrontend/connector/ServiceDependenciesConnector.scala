@@ -38,7 +38,7 @@ import play.api.{Configuration, Logger, Environment => PlayEnvironment}
 import uk.gov.hmrc.cataloguefrontend.UrlHelper
 import uk.gov.hmrc.cataloguefrontend.connector.model.Dependencies
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext.fromLoggingDetails
 
@@ -47,7 +47,7 @@ import scala.concurrent.Future
 
 
 @Singleton
-class ServiceDependenciesConnector @Inject()(http : DefaultHttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends ServicesConfig {
+class ServiceDependenciesConnector @Inject()(http : HttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends ServicesConfig {
 
   def servicesDependenciesBaseUrl: String = baseUrl("service-dependencies") + "/api/service-dependencies"
 

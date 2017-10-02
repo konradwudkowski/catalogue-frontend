@@ -29,7 +29,7 @@ import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepos
 import uk.gov.hmrc.cataloguefrontend.connector.ServiceDependenciesConnector
 import uk.gov.hmrc.cataloguefrontend.connector.model.{Dependencies, Version}
 import uk.gov.hmrc.play.bootstrap.controller.FrontendController
-import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -54,7 +54,7 @@ case class DependencyReport(repository: String,
                             timestamp: Long = new Date().getTime)
 
 @Singleton
-class DependencyReportController @Inject()(http : DefaultHttpClient,
+class DependencyReportController @Inject()(http : HttpClient,
                                            override val runModeConfiguration:Configuration,
                                            environment : PlayEnvironment,
                                            teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector,

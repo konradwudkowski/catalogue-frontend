@@ -39,7 +39,7 @@ import play.api.libs.json._
 import play.api.{Configuration, Logger, Environment => PlayEnvironment}
 import uk.gov.hmrc.cataloguefrontend.FutureHelpers.withTimerAndCounter
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,7 +48,7 @@ import scala.concurrent.Future
 
 
 @Singleton
-case class UserManagementConnector @Inject()(http : DefaultHttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends UserManagementPortalLink {
+case class UserManagementConnector @Inject()(http : HttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends UserManagementPortalLink {
 
   import UserManagementConnector._
 
