@@ -16,10 +16,14 @@
 
 package uk.gov.hmrc.cataloguefrontend.events
 
+import javax.inject.{Inject, Singleton}
+
 import play.api.libs.json.Json
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.cataloguefrontend.FutureHelpers.withTimerAndCounter
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -27,19 +31,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
-trait EventRepository {
-  def add(event: Event): Future[Boolean]
-  def getEventsByType(eventType: EventType.Value): Future[Seq[Event]]
-  def getAllEvents: Future[List[Event]]
-  def clearAllData: Future[Boolean]
-}
+//trait EventRepository {
+//  def add(event: Event): Future[Boolean]
+//  def getEventsByType(eventType: EventType.Value): Future[Seq[Event]]
+//  def getAllEvents: Future[List[Event]]
+//  def clearAllData: Future[Boolean]
+//}
 
 
-class MongoEventRepository(mongo: () => DB)
+@Singleton
+class EventRepository @Inject() (mongo: ReactiveMongoComponent)
   extends ReactiveRepository[Event, BSONObjectID](
     collectionName = "events",
-    mongo = mongo,
-    domainFormat = Event.format) with EventRepository {
+    mongo = mongo.mongoConnector.db,
+    domainFormat = Event.format) {
 
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
@@ -49,16 +54,17 @@ class MongoEventRepository(mongo: () => DB)
       )
     )
 
-  override def add(event: Event): Future[Boolean] = {
+  def add(event: Event): Future[Boolean] = {
     withTimerAndCounter("mongo.write") {
       insert(event) map {
-        case lastError if lastError.inError => throw lastError
         case _ => true
       }
+    } recover {
+      case lastError => throw lastError
     }
   }
 
-  override def getEventsByType(eventType: EventType.Value): Future[Seq[Event]] = {
+  def getEventsByType(eventType: EventType.Value): Future[Seq[Event]] = {
 
     withTimerAndCounter("mongo.read") {
       find("eventType" -> BSONDocument("$eq" -> eventType.toString)) map {
@@ -69,8 +75,8 @@ class MongoEventRepository(mongo: () => DB)
   }
 
 
-  override def getAllEvents: Future[List[Event]] = findAll()
+  def getAllEvents: Future[List[Event]] = findAll()
 
-  override def clearAllData: Future[Boolean] = super.removeAll().map(!_.hasErrors)
+  def clearAllData: Future[Boolean] = super.removeAll().map(_.ok)
 
 }

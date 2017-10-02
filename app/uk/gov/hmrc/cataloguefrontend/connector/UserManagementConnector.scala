@@ -39,15 +39,16 @@ import play.api.libs.json._
 import play.api.{Configuration, Logger, Environment => PlayEnvironment}
 import uk.gov.hmrc.cataloguefrontend.FutureHelpers.withTimerAndCounter
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
+
 @Singleton
-case class UserManagementConnector @Inject()(http : HttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends UserManagementPortalLink {
+case class UserManagementConnector @Inject()(http : DefaultHttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends UserManagementPortalLink {
 
   import UserManagementConnector._
 
@@ -72,8 +73,7 @@ case class UserManagementConnector @Inject()(http : HttpClient, override val run
 //                         team: String)
 
 
-  implicit val teamMemberFormat = Json.format[TeamMember]
-  implicit val teamDetailsReads = Json.reads[TeamDetails]
+
 
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response
@@ -148,6 +148,7 @@ case class UserManagementConnector @Inject()(http : HttpClient, override val run
 
 
   def getTeamDetails(team: String)(implicit hc: HeaderCarrier): Future[Either[UMPError, TeamDetails]] = {
+    import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.teamDetailsReads
     val newHeaderCarrier = hc.withExtraHeaders("requester" -> "None", "Token" -> "None")
     //    val url = s"$userManagementBaseUrl/v1/organisations/mdtp/teams/$team"
     val url = s"$userManagementBaseUrl/v2/organisations/teams/$team"
@@ -234,6 +235,8 @@ object UserManagementConnector {
                          team: String)
 
 
+  implicit val teamMemberFormat = Json.format[TeamMember]
+  implicit val teamDetailsReads = Json.reads[TeamDetails]
 
 
 }

@@ -38,7 +38,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext.fromLoggingDetails
 
@@ -70,7 +70,7 @@ case class MeasureResult(median: Int)
 
 
 @Singleton
-class IndicatorsConnector @Inject()(http: HttpClient,
+class IndicatorsConnector @Inject()(http: DefaultHttpClient,
                                     override val runModeConfiguration: Configuration,
                                     environment : Environment) extends ServicesConfig {
   def indicatorsBaseUrl = baseUrl("indicators") + "/api/indicators"

@@ -38,7 +38,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.{Configuration, Logger, Environment => PlayEnvironment}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, NotFoundException}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext.fromLoggingDetails
 
@@ -78,7 +78,7 @@ object ServiceDeploymentInformation {
 
 
 @Singleton
-class ServiceDeploymentsConnector @Inject()(http : HttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends ServicesConfig {
+class ServiceDeploymentsConnector @Inject()(http : DefaultHttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends ServicesConfig {
 
   def servicesDeploymentsBaseUrl: String = baseUrl("service-deployments") + "/api/deployments"
   def whatIsRunningWhereBaseUrl: String = baseUrl("service-deployments") + "/api/whatsrunningwhere"

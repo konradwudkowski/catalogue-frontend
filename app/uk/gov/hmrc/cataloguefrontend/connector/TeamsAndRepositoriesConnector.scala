@@ -24,7 +24,7 @@ import play.api.libs.json._
 import play.api.{Configuration, Logger, Environment => PlayEnvironment}
 import uk.gov.hmrc.cataloguefrontend.DigitalService.DigitalServiceRepository
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
 import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -80,7 +80,7 @@ object DigitalService {
 }
 
 @Singleton
-class TeamsAndRepositoriesConnector @Inject()(http : HttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends ServicesConfig {
+class TeamsAndRepositoriesConnector @Inject()(http : DefaultHttpClient, override val runModeConfiguration:Configuration, environment : PlayEnvironment) extends ServicesConfig {
   type ServiceName = String
   type TeamName = String
 

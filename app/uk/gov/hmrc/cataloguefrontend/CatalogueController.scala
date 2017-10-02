@@ -21,7 +21,10 @@ import java.time.{LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 
 import cats.data.EitherT
-import play.api.Play.current
+import play.api
+import play.api.Configuration
+import play.api.i18n.{I18nSupport, Messages, MessagesApi}
+//import play.api.Play.current
 import play.api.data.Forms._
 import play.api.data.{Form, Mapping}
 import play.api.i18n.Messages.Implicits._
@@ -71,17 +74,19 @@ class CatalogueController @Inject()(userManagementConnector: UserManagementConne
                                     serviceDependencyConnector : ServiceDependenciesConnector,
                                     indicatorsConnector: IndicatorsConnector,
                                     deploymentsService: DeploymentsService,
-                                    reactiveMongoComponent: ReactiveMongoComponent
-                                   ) extends FrontendController with UserManagementPortalLink {
+                                    eventService: EventService,
+                                    readModelService: ReadModelService,
+                                    environment: api.Environment,
+                                    override val runModeConfiguration: Configuration,
+                                    val messagesApi: MessagesApi
+                                   ) extends FrontendController with UserManagementPortalLink with I18nSupport {
 
   import UserManagementConnector._
 
   val profileBaseUrlConfigKey = "user-management.profileBaseUrl"
 
-  lazy val eventService = new DefaultEventService(new MongoEventRepository(reactiveMongoComponent.mongoConnector.db))
 
-  lazy val readModelService = new DefaultReadModelService(eventService, userManagementConnector)
-
+  override protected def mode = environment.mode
 
 
   val repotypeToDetailsUrl = Map(
@@ -91,23 +96,11 @@ class CatalogueController @Inject()(userManagementConnector: UserManagementConne
     RepoType.Prototype -> routes.CatalogueController.prototype _
   )
 
-//  def userManagementConnector: UserManagementConnector
-//
-//  def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector
-//
-//  def serviceDependencyConnector : ServiceDependenciesConnector
-//
-//  def indicatorsConnector: IndicatorsConnector
-//
-//  def deploymentsService: DeploymentsService
-//
-//  def eventService: EventService
-//
-//  def readModelService: ReadModelService
 
   def landingPage() = Action { request =>
     Ok(landing_page())
   }
+
 
   def serviceOwner(digitalService: String) = Action {
     readModelService.getDigitalServiceOwner(digitalService).fold(NotFound(Json.toJson(s"owner for $digitalService not found")))(ds => Ok(Json.toJson(ds)))
@@ -440,7 +433,6 @@ class CatalogueController @Inject()(userManagementConnector: UserManagementConne
 //  private def convertToDisplayableTeamMembers(teamsAndMembers: Map[String, Either[UMPError, Seq[userManagementConnector.TeamMember]]]): Map[String, Either[UMPError, Seq[DisplayableTeamMember]]] =
   private def convertToDisplayableTeamMembers(teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]]): Map[String, Either[UMPError, Seq[DisplayableTeamMember]]] =
     teamsAndMembers.map { case (teamName, errorOrMembers) => (teamName, convertToDisplayableTeamMembers(teamName, errorOrMembers)) }
-
 
 }
 
