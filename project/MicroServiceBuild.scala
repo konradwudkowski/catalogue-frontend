@@ -11,8 +11,6 @@ private object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-
-  private val frontendBootstrapVersion = "8.5.0"
   private val urlBuilderVersion = "1.1.0"
   private val catsVersion = "0.9.0"
   private val playReactivemongoVersion = "6.1.0"
