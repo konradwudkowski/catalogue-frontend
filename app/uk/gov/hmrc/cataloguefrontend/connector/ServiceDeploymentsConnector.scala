@@ -85,8 +85,9 @@ class ServiceDeploymentsConnector @Inject()(http : HttpClient, override val runM
 
   override protected def mode = environment.mode
 
-  import ServiceDeploymentInformation._
   import _root_.uk.gov.hmrc.http.HttpReads._
+  import JavaDateTimeJsonFormatter._
+  import ServiceDeploymentInformation._
 
   implicit val deployerFormat = Json.format[Deployer]
   
