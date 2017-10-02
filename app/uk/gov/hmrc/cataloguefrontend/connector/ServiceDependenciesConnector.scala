@@ -76,9 +76,3 @@ class ServiceDependenciesConnector @Inject()(http : HttpClient, override val run
   }
 
 }
-
-//object ServiceDependenciesConnector extends ServiceDependenciesConnector {
-//  override val http = WSHttp
-//
-//  override def servicesDependenciesBaseUrl: String = baseUrl("service-dependencies") + "/api/service-dependencies"
-//}

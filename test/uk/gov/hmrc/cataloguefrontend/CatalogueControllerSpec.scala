@@ -98,17 +98,6 @@ class CatalogueControllerSpec extends UnitSpec with BeforeAndAfterEach with OneS
       }
     }
 
-//    override def userManagementConnector: UserManagementConnector = ???
-//
-//    override def indicatorsConnector: IndicatorsConnector = ???
-//    override def deploymentsService: DeploymentsService = ???
-//
-//    override def readModelService: ReadModelService = mockedModelService
-//    override def eventService: EventService = mockedEventService
-//
-//    override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = ???
-//
-//    override def serviceDependencyConnector: ServiceDependenciesConnector = ???
   }
 
 

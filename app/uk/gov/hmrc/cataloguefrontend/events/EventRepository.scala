@@ -18,9 +18,7 @@ package uk.gov.hmrc.cataloguefrontend.events
 
 import javax.inject.{Inject, Singleton}
 
-import play.api.libs.json.Json
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.DB
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -30,13 +28,6 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-
-//trait EventRepository {
-//  def add(event: Event): Future[Boolean]
-//  def getEventsByType(eventType: EventType.Value): Future[Seq[Event]]
-//  def getAllEvents: Future[List[Event]]
-//  def clearAllData: Future[Boolean]
-//}
 
 
 @Singleton

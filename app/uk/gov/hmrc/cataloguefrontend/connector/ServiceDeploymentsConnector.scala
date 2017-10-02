@@ -143,9 +143,3 @@ class ServiceDeploymentsConnector @Inject()(http : HttpClient, override val runM
   }
 
 }
-
-//object ServiceDeploymentsConnector extends ServiceDeploymentsConnector {
-//  override val http = WSHttp
-//  override def servicesDeploymentsBaseUrl: String = baseUrl("service-deployments") + "/api/deployments"
-//  override def whatIsRunningWhereBaseUrl: String = baseUrl("service-deployments") + "/api/whatsrunningwhere"
-//}

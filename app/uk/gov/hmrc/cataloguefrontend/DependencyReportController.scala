@@ -34,16 +34,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-
-//object DependencyReportController extends DependencyReportController  {
-//
-//  override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = TeamsAndRepositoriesConnector
-//
-//  lazy override val serviceDependencyConnector: ServiceDependenciesConnector = ServiceDependenciesConnector
-//}
-
 case class DependencyReport(repository: String,
-//                            repoType: String,
                             team: String,
                             digitalService: String,
                             dependencyName: String,
@@ -88,7 +79,6 @@ class DependencyReportController @Inject()(http : HttpClient,
     val sbtPluginDependencyReportLines = dependencies.sbtPluginsDependenciesState.map { d =>
 
       DependencyReport(repository = repoName,
-//        repoType = getRepositoryType(repoName, allRepos),
         team = findTeamNames(repoName, allTeams).mkString(";"),
         digitalService = findDigitalServiceName(repoName, digitalServices),
         dependencyName = d.sbtPluginName,
@@ -120,11 +110,6 @@ class DependencyReportController @Inject()(http : HttpClient,
     headers.map(x => (x +: dataRows).mkString("\n")).getOrElse("No data")
 
   }
-
-
-
-//  private def getRepositoryType(repositoryName:String, allRepos: Seq[RepositoryDisplayDetails]): String =
-//    allRepos.find(r => r.name == repositoryName).map(_.repoType).getOrElse("Unknown").toString
 
   private def findTeamNames(repositoryName: String, teams: Seq[Team]): Seq[String] =
     teams.filter(_.repos.isDefined).filter(team => team.repos.get.values.flatten.toSeq.contains(repositoryName)).map(_.name)

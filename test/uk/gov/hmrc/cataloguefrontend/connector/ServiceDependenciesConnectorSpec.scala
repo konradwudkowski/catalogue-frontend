@@ -179,14 +179,6 @@ class ServiceDependenciesConnectorSpec
 
     "return a None for if a communication error occurs" in {
 
-//      val http: HttpGet = new HttpGet {
-//        override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = Future.failed(new RuntimeException("Boom!!"))
-//        override val hooks: Seq[HttpHook] = Nil
-//
-//        override def configuration = None
-//      }
-
-
       val mockedHttpClient = mock[HttpClient]
       Mockito.when(mockedHttpClient.GET(any())(any(), any(), any())).thenReturn(Future.failed(new RuntimeException("Boom!!")))
       val failingServiceDependenciesConnector = new ServiceDependenciesConnector(mockedHttpClient, Configuration(), mock[Environment]) {

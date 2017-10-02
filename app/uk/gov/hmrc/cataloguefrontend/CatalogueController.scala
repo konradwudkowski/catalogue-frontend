@@ -24,13 +24,10 @@ import cats.data.EitherT
 import play.api
 import play.api.Configuration
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
-//import play.api.Play.current
 import play.api.data.Forms._
 import play.api.data.{Form, Mapping}
-import play.api.i18n.Messages.Implicits._
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.cataloguefrontend.DisplayableTeamMember._
 import uk.gov.hmrc.cataloguefrontend.TeamsAndRepositoriesConnector.TeamsAndRepositoriesError
 import uk.gov.hmrc.cataloguefrontend.UserManagementConnector.{TeamMember, UMPError}
@@ -50,23 +47,6 @@ case class DigitalServiceDetails(digitalServiceName: String,
                                  repos: Map[String, Seq[String]])
 
 
-
-//object CatalogueController extends CatalogueController with MongoDbConnection {
-//
-//  override def userManagementConnector: UserManagementConnector = UserManagementConnector
-//
-//  override def teamsAndRepositoriesConnector: TeamsAndRepositoriesConnector = TeamsAndRepositoriesConnector
-//
-//  override def indicatorsConnector: IndicatorsConnector = IndicatorsConnector
-//
-//  lazy override val deploymentsService: DeploymentsService = new DeploymentsService(ServiceDeploymentsConnector, TeamsAndRepositoriesConnector)
-//
-////  lazy override val eventService = new DefaultEventService(new MongoEventRepository(db))
-////
-////  lazy override val readModelService = new DefaultReadModelService(eventService, UserManagementConnector)
-////
-////  lazy override val serviceDependencyConnector: ServiceDependenciesConnector = ServiceDependenciesConnector
-//}
 
 @Singleton
 class CatalogueController @Inject()(userManagementConnector: UserManagementConnector,
@@ -430,7 +410,6 @@ class CatalogueController @Inject()(userManagementConnector: UserManagementConne
     }
 
 
-//  private def convertToDisplayableTeamMembers(teamsAndMembers: Map[String, Either[UMPError, Seq[userManagementConnector.TeamMember]]]): Map[String, Either[UMPError, Seq[DisplayableTeamMember]]] =
   private def convertToDisplayableTeamMembers(teamsAndMembers: Map[String, Either[UMPError, Seq[TeamMember]]]): Map[String, Either[UMPError, Seq[DisplayableTeamMember]]] =
     teamsAndMembers.map { case (teamName, errorOrMembers) => (teamName, convertToDisplayableTeamMembers(teamName, errorOrMembers)) }
 

@@ -52,29 +52,6 @@ case class UserManagementConnector @Inject()(http : HttpClient, override val run
 
   import UserManagementConnector._
 
-//  case class TeamMember(displayName: Option[String],
-//                        familyName: Option[String],
-//                        givenName: Option[String],
-//                        primaryEmail: Option[String],
-//                        serviceOwnerFor: Option[Seq[String]],
-//                        username: Option[String]) {
-//
-//    def getUmpLink(umpProfileBaseUrl: String) =
-//      this.username.map(x => s"${umpProfileBaseUrl.appendSlash}$x").getOrElse("USERNAME NOT PROVIDED")
-//
-//    def getDisplayName = this.displayName.getOrElse("DISPLAY NAME NOT PROVIDED")
-//  }
-
-//  case class TeamDetails(description: Option[String],
-//                         location: Option[String],
-//                         organisation: Option[String],
-//                         documentation: Option[String],
-//                         slack: Option[String],
-//                         team: String)
-
-
-
-
   implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
     override def read(method: String, url: String, response: HttpResponse) = response
   }

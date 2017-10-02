@@ -62,9 +62,3 @@ class UpdateScheduler @Inject()(actorSystem: ActorSystem, readModelService: Read
   }
 
 }
-
-
-//object UpdateScheduler extends Scheduler with DefaultSchedulerDependencies {
-//  override def readModelService: ReadModelService = CatalogueController.readModelService
-//}
-

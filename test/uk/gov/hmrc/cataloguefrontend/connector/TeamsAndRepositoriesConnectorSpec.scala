@@ -225,18 +225,5 @@ class TeamsAndRepositoriesConnectorSpec extends WordSpec with Matchers with Befo
 
   def teamsAndRepositoriesWithMockedHttp(httpClient: HttpClient) = new TeamsAndRepositoriesConnector(httpClient, Configuration(), mock[api.Environment]) {
     override def teamsAndServicesBaseUrl: String = "someUrl"
-//    override val http: HttpGet with HttpPost = new HttpGet with HttpPost {
-//
-////      override def GET[A](url: String)(implicit rds: HttpReads[A], hc: HeaderCarrier): Future[A] = Future.failed(exception)
-//
-//      override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = Future.failed(exception)
-//      override def doPost[A](url: String, body: A, headers: Seq[(String, String)])(implicit wts: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = ???
-//      override def doPostString(url: String, body: String, headers: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-//      override def doEmptyPost[A](url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-//      override def doFormPost(url: String, body: Map[String, Seq[String]])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-//      override val hooks: Seq[HttpHook] = Nil
-//
-//      override val configuration = None
-//    }
   }
 }

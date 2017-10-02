@@ -142,9 +142,3 @@ class IndicatorsConnector @Inject()(http: HttpClient,
   }
 
 }
-
-//object IndicatorsConnector extends IndicatorsConnector {
-//  override def indicatorsBaseUrl: String = baseUrl("indicators") + "/api/indicators"
-//
-//  override val http = Play.application.injector.instanceOf[HttpClient]
-//}
